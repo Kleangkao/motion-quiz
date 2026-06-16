@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listLessons } from '@/storage/lessonStorage';
-import { STARTER_LESSONS } from '@/data/starterLessons';
-import { db } from '@/storage/db';
+import { ensureStarterLessons } from '@/storage/seedLessons';
 import type { LessonPack } from '@/storage/types';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
@@ -14,11 +13,7 @@ export function LessonSelectPage() {
 
   useEffect(() => {
     async function load() {
-      // Seed starter lessons if DB is empty
-      const existing = await db.lessons.count();
-      if (existing === 0) {
-        await db.lessons.bulkPut(STARTER_LESSONS);
-      }
+      await ensureStarterLessons();
       const all = await listLessons();
       setLessons(all);
       setLoading(false);

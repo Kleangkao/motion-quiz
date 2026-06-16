@@ -98,6 +98,8 @@ npm run lint
 | `seeker_mobile_basics` | Solana Mobile & Seeker Basics | Solo (8 questions) |
 | `starter_places_at_school` | Places at School | Solo (legacy demo) |
 
+Built-in packs are added **idempotently by ID** on app load: missing packs are inserted, and existing local lessons (including user edits) are never overwritten.
+
 ## Game Moment (optional)
 
 After a quiz, the **Result** screen offers an optional **Game Moment** — a composed result card (score, accuracy, pack name, date, wallet/proof badge if present). It is generated **locally in the browser** with canvas; you choose when to create, preview, and save/share. Nothing is uploaded automatically. v1 is a stats card only (no camera selfie); snapshot/selfie support may come later.

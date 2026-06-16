@@ -91,3 +91,6 @@ export const STARTER_LESSONS: LessonPack[] = [
   seekerMobileBasicsLesson,
   placesAtSchoolLesson,
 ];
+
+/** Stable IDs for built-in packs — used for idempotent IndexedDB migration */
+export const BUILTIN_LESSON_IDS = STARTER_LESSONS.map((lesson) => lesson.id);
