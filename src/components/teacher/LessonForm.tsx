@@ -36,7 +36,7 @@ export function LessonForm({ initial, onSave, onCancel }: Props) {
           onChange={(e) => setTitle(e.target.value)}
           required
           className="w-full rounded-xl bg-white/10 px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          placeholder="e.g. Places at School"
+          placeholder="e.g. Solana Workshop Warm-up"
         />
       </div>
 

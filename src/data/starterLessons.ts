@@ -85,11 +85,11 @@ import { seekerMobileBasicsLesson } from './seekerStarterLesson';
 import { solanaBasicsLesson } from './solanaBasicsLesson';
 import { islanddaoChallengeLesson } from './islanddaoChallengeLesson';
 
+/** Built-in packs seeded on first launch (legacy classroom pack excluded). */
 export const STARTER_LESSONS: LessonPack[] = [
   solanaBasicsLesson,
   islanddaoChallengeLesson,
   seekerMobileBasicsLesson,
-  placesAtSchoolLesson,
 ];
 
 /** Stable IDs for built-in packs — used for idempotent IndexedDB migration */

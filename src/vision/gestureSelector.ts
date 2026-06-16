@@ -47,6 +47,50 @@ function isExtendedFromBody(
   return false;
 }
 
+const FINGER_TIP_INDICES = [
+  HandLandmarkIndex.INDEX_FINGER_TIP,
+  HandLandmarkIndex.MIDDLE_FINGER_TIP,
+  HandLandmarkIndex.RING_FINGER_TIP,
+] as const;
+
+function averageLandmarks(landmarks: Landmark[]): Landmark {
+  return {
+    x: landmarks.reduce((sum, t) => sum + t.x, 0) / landmarks.length,
+    y: landmarks.reduce((sum, t) => sum + t.y, 0) / landmarks.length,
+    z: landmarks.reduce((sum, t) => sum + (t.z ?? 0), 0) / landmarks.length,
+    visibility: Math.min(...landmarks.map((t) => t.visibility ?? 1)),
+  };
+}
+
+/** Aim from outward-reaching fingertips (not palm / idle finger defaults). */
+function getHandAimLandmark(
+  handLandmarks: Landmark[],
+  bodyCenterXNorm: number,
+): Landmark | null {
+  const wrist = handLandmarks[HandLandmarkIndex.WRIST];
+  const tips = FINGER_TIP_INDICES
+    .map((i) => handLandmarks[i])
+    .filter((lm): lm is Landmark => Boolean(lm));
+  if (tips.length === 0) return wrist ?? null;
+  if (!wrist) return averageLandmarks(tips);
+
+  const wristBodyDist = Math.abs(wrist.x - bodyCenterXNorm);
+  let best: Landmark | null = null;
+  let bestReach = 0;
+
+  for (const tip of tips) {
+    if (Math.abs(tip.x - bodyCenterXNorm) < wristBodyDist + 0.01) continue;
+    const reach = Math.abs(tip.x - wrist.x);
+    if (reach > bestReach) {
+      best = tip;
+      bestReach = reach;
+    }
+  }
+
+  if (best) return best;
+  return averageLandmarks(tips);
+}
+
 function isHandPointingOutward(
   handLandmarks: Landmark[],
   layout: LayoutInput,
@@ -54,18 +98,20 @@ function isHandPointingOutward(
   side: 'left' | 'right',
   minExtension: number,
 ): boolean {
-  const tip = handLandmarks[HandLandmarkIndex.INDEX_FINGER_TIP];
   const wrist = handLandmarks[HandLandmarkIndex.WRIST];
-  if (!tip || !wrist) return true;
+  if (!wrist) return true;
 
-  const tipN = landmarkToContainerNorm(tip, layout);
   const wristN = landmarkToContainerNorm(wrist, layout);
   const bodyX = bodyCenterContainerX(bodyCenterXNorm, layout);
 
-  if (!isExtendedFromBody(tipN.x, bodyX, side, minExtension)) return false;
-
-  if (side === 'left') return tipN.x <= wristN.x - 0.015;
-  return tipN.x >= wristN.x + 0.015;
+  return FINGER_TIP_INDICES.some((index) => {
+    const tip = handLandmarks[index];
+    if (!tip) return false;
+    const tipN = landmarkToContainerNorm(tip, layout);
+    if (!isExtendedFromBody(tipN.x, bodyX, side, minExtension)) return false;
+    if (side === 'left') return tipN.x <= wristN.x - 0.01;
+    return tipN.x >= wristN.x + 0.01;
+  });
 }
 
 function evaluatePointForTargets(
@@ -142,9 +188,7 @@ export function evaluateHandSide(
   bodyCenterXNorm: number,
   targetZones?: TargetZoneSet,
 ): SideCandidate | null {
-  const tip = handLandmarks[HandLandmarkIndex.INDEX_FINGER_TIP];
-  const wrist = handLandmarks[HandLandmarkIndex.WRIST];
-  const point = tip ?? wrist;
+  const point = getHandAimLandmark(handLandmarks, bodyCenterXNorm);
   if (!point) return null;
 
   const { x: displayXNorm, y: displayYNorm } = landmarkToContainerNorm(point, layout);
@@ -399,10 +443,9 @@ export function runGestureSelector(
         : 'no_candidate';
 
     if (handLandmarks?.[0]) {
-      const tip = handLandmarks[0][HandLandmarkIndex.INDEX_FINGER_TIP]
-        ?? handLandmarks[0][HandLandmarkIndex.WRIST];
-      if (tip) {
-        const { x, y } = landmarkToContainerNorm(tip, layout);
+      const aim = getHandAimLandmark(handLandmarks[0], bodyCenterXNorm);
+      if (aim) {
+        const { x, y } = landmarkToContainerNorm(aim, layout);
         reason = inferNoCandidateReason(x, y, bodyCenterXNorm, layout, settings, targetZones);
       }
     } else if (poseLandmarks) {

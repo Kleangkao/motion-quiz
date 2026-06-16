@@ -12,7 +12,7 @@ export function getGestureStatusMessage(
   gestureInputEnabled: boolean,
 ): StatusMessage {
   if (!gestureInputEnabled) {
-    return { text: 'Touch mode — tap a choice to answer', icon: '👆' };
+    return { text: 'Touch mode. Tap a choice to answer.', icon: '👆' };
   }
 
   if (diagnostics.poseModelStatus === 'loading' || diagnostics.handModelStatus === 'loading') {
@@ -31,7 +31,7 @@ export function getGestureStatusMessage(
   }
 
   if (output.reason === 'wrong_side') {
-    return { text: 'Wrong card — point at the card shown in the instructions.', icon: '↩️' };
+    return { text: 'Wrong card. Point at the card shown in the instructions.', icon: '↩️' };
   }
 
   if (output.reason === 'cooldown' || output.lockedSide) {

@@ -1,13 +1,12 @@
 import { Navigate, Routes, Route } from 'react-router-dom';
 import { HomePage } from './routes/HomePage';
 import { SoloPlayPage } from './routes/SoloPlayPage';
-import { ChallengeModePage } from './routes/ChallengeModePage';
 import { CalibrationPage } from './routes/CalibrationPage';
 import { GestureTestPage } from './routes/GestureTestPage';
 import { GamePage } from './routes/GamePage';
 import { ResultPage } from './routes/ResultPage';
-import { TeacherDashboardPage } from './routes/TeacherDashboardPage';
 import { LessonEditorPage } from './routes/LessonEditorPage';
+import { CreateTopicPage } from './routes/CreateTopicPage';
 import { ResultsHistoryPage } from './routes/ResultsHistoryPage';
 import { SettingsPage } from './routes/SettingsPage';
 
@@ -15,16 +14,17 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/solo" element={<SoloPlayPage />} />
-      <Route path="/challenge" element={<ChallengeModePage />} />
-      <Route path="/challenge/host" element={<TeacherDashboardPage />} />
+      <Route path="/play" element={<SoloPlayPage />} />
+      <Route path="/play/create-topic" element={<CreateTopicPage />} />
+      <Route path="/play/edit-topic/:lessonId" element={<CreateTopicPage />} />
+      <Route path="/solo" element={<Navigate to="/play" replace />} />
+      <Route path="/challenge" element={<Navigate to="/play" replace />} />
+      <Route path="/challenge/host" element={<Navigate to="/play/create-topic" replace />} />
+      <Route path="/challenge/host/lesson/new" element={<Navigate to="/play/create-topic" replace />} />
       <Route path="/challenge/host/lesson/:lessonId" element={<LessonEditorPage />} />
-      <Route path="/challenge/host/lesson/new" element={<LessonEditorPage />} />
-      {/* Legacy routes */}
-      <Route path="/play" element={<Navigate to="/solo" replace />} />
-      <Route path="/teacher" element={<Navigate to="/challenge/host" replace />} />
+      <Route path="/teacher" element={<Navigate to="/play/create-topic" replace />} />
       <Route path="/teacher/lesson/:lessonId" element={<LessonEditorPage />} />
-      <Route path="/teacher/lesson/new" element={<LessonEditorPage />} />
+      <Route path="/teacher/lesson/new" element={<Navigate to="/play/create-topic" replace />} />
       {/* Play flow */}
       <Route path="/play/:lessonId/calibrate" element={<CalibrationPage />} />
       <Route path="/play/:lessonId/gesture-test" element={<GestureTestPage />} />

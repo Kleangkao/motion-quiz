@@ -16,7 +16,7 @@ export interface UseCameraReturn {
   cameraState: CameraState;
   devices: VideoDevice[];
   selectedDeviceId: string | undefined;
-  start: (deviceId?: string) => Promise<void>;
+  start: (deviceId?: string, facingOverride?: 'user' | 'environment') => Promise<boolean>;
   stop: () => void;
   switchCamera: () => Promise<void>;
   selectDevice: (deviceId: string) => Promise<void>;
@@ -47,12 +47,13 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
   }, []);
 
   const start = useCallback(
-    async (deviceId?: string) => {
+    async (deviceId?: string, facingOverride?: 'user' | 'environment') => {
       setCameraState({ status: 'requesting' });
+      const mode = facingOverride ?? facingMode;
       try {
         const stream = await requestCameraStream(
           deviceId ?? selectedDeviceId,
-          facingMode,
+          mode,
           resolution,
         );
         // Stop previous stream if any
@@ -73,8 +74,10 @@ export function useCamera(options: UseCameraOptions = {}): UseCameraReturn {
         // Enumerate devices after permission granted (labels become available)
         const devList = await enumerateVideoDevices();
         setDevices(devList);
+        return true;
       } catch (err) {
         setCameraState({ status: 'error', error: err as import('./cameraTypes').CameraError });
+        return false;
       }
     },
     [facingMode, resolution, selectedDeviceId],

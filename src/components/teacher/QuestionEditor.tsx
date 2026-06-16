@@ -116,7 +116,7 @@ export function QuestionEditor({ question, onSave, onCancel }: Props) {
       {correctSide && (
         <p className="text-xs text-green-400">
           ✓ Correct side: {correctSide}
-          {(correctSide === 'left' ? leftLabel : rightLabel) && ` — "${correctSide === 'left' ? leftLabel : rightLabel}"`}
+          {(correctSide === 'left' ? leftLabel : rightLabel) && ` (${correctSide === 'left' ? leftLabel : rightLabel})`}
         </p>
       )}
 

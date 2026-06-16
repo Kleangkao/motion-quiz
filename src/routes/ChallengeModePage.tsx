@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { importLesson, listLessons, exportLesson, updateLesson } from '@/storage/lessonStorage';
-import { ensureStarterLessons, isChallengePack } from '@/storage/seedLessons';
+import { ensureStarterLessons, isChallengePack, playStateForLesson } from '@/storage/seedLessons';
 import type { LessonPack } from '@/storage/types';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
@@ -45,16 +45,12 @@ export function ChallengeModePage() {
 
   const startChallenge = (lesson: LessonPack) => {
     navigate(`/play/${lesson.id}/calibrate`, {
-      state: {
-        playMode: 'challenge' as const,
-        challengeId: lesson.challengeId ?? lesson.id,
-        challengeName: lesson.title,
-      },
+      state: playStateForLesson(lesson),
     });
   };
 
   return (
-    <PageLayout title="Challenge Mode" backTo="/">
+    <PageLayout title="Import Challenge" backTo="/">
       <div className="space-y-6">
         <div className="glass-card p-5 space-y-3">
           <h3 className="font-bold text-white">Import a Challenge</h3>
@@ -81,7 +77,7 @@ export function ChallengeModePage() {
 
         <div className="flex gap-3">
           <button onClick={() => navigate('/challenge/host')} className="btn btn-secondary btn-md flex-1">
-            Host a Challenge
+            Create Pack
           </button>
         </div>
 

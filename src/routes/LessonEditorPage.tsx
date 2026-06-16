@@ -161,7 +161,7 @@ export function LessonEditorPage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-white truncate">{q.prompt}</p>
                     <p className="text-xs text-white/40">
-                      Correct: {q.correctSide} — {q.correctSide === 'left' ? q.left.label : q.right.label}
+                      Correct: {q.correctSide} ({q.correctSide === 'left' ? q.left.label : q.right.label})
                       {q.answerText && ` (${q.answerText})`}
                     </p>
                   </div>

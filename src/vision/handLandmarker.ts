@@ -9,6 +9,8 @@ export const HandLandmarkIndex = {
   WRIST: 0,
   INDEX_FINGER_TIP: 8,
   MIDDLE_FINGER_TIP: 12,
+  RING_FINGER_TIP: 16,
+  PINKY_TIP: 20,
 } as const;
 
 export class HandLandmarkerService {

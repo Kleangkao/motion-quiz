@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { captureVideoFrame } from '@/utils/captureFrame';
+import { captureVideoFrameAsync } from '@/utils/captureFrame';
 
 interface Props {
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -109,24 +109,26 @@ export function PhotoCaptureMiniGame({ videoRef, containerRef, mirrored, onCompl
     }, 200);
 
     const snap = window.setTimeout(() => {
-      const video = videoRef.current;
-      const container = containerRef.current;
-      const frame = frameRef.current;
-      let url: string | null = null;
+      void (async () => {
+        const video = videoRef.current;
+        const container = containerRef.current;
+        const frame = frameRef.current;
+        let url: string | null = null;
 
-      if (video && container && frame) {
-        const fr = frame.getBoundingClientRect();
-        url = captureVideoFrame(
-          video,
-          { left: fr.left, top: fr.top, width: fr.width, height: fr.height },
-          container.getBoundingClientRect(),
-          mirrored,
-        );
-      }
+        if (video && container && frame) {
+          const fr = frame.getBoundingClientRect();
+          url = await captureVideoFrameAsync(
+            video,
+            { left: fr.left, top: fr.top, width: fr.width, height: fr.height },
+            container.getBoundingClientRect(),
+            mirrored,
+          );
+        }
 
-      setPreviewUrl(url);
-      setPhase('flash');
-      setTimeout(() => setPhase('preview'), 180);
+        setPreviewUrl(url);
+        setPhase('flash');
+        setTimeout(() => setPhase('preview'), 180);
+      })();
     }, RUN_MS);
 
     return () => {

@@ -14,10 +14,13 @@ import { mergePlayState } from '@/game/playSessionState';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
 import { isGestureInputAllowed } from '@/game/inputMode';
+import { calibrationForFacing } from '@/camera/cameraSetup';
 
-type TestStep = 'intro' | 'point-left' | 'left-done' | 'point-right' | 'right-done';
+type TestStep = 'point-left' | 'left-done' | 'point-right' | 'right-done';
 
-const AUTO_ADVANCE_MS = 1000;
+const AUTO_ADVANCE_MS = 700;
+
+import { HoldProgressBar } from '@/components/game/HoldProgressBar';
 
 /** Placeholder cards matching game layout for zone measurement */
 function TestChoiceCard({
@@ -35,43 +38,28 @@ function TestChoiceCard({
   isCandidate?: boolean;
   innerRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const pct = Math.round(holdProgress * 100);
+  const sideLabel = side === 'left' ? 'Left' : 'Right';
+  const showHold = isCandidate && holdProgress > 0;
 
   return (
-    <div
-      ref={innerRef}
-      className={`relative flex flex-col items-center gap-2 rounded-3xl border-2 p-4 w-36 transition-all duration-150 ${
-        isCandidate ? 'scale-105 ring-2 ring-indigo-400/60 border-indigo-400 bg-indigo-500/20' :
-        active ? 'border-indigo-400 bg-indigo-500/20 scale-105' : 'border-white/30 bg-white/10'
-      }`}
-    >
-      {isCandidate && holdProgress > 0 && (
-        <svg
-          className="absolute inset-0 h-full w-full pointer-events-none"
-          viewBox="0 0 100 100"
-          aria-hidden="true"
-        >
-          <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="6" />
-          <circle
-            cx="50" cy="50" r="46"
-            fill="none"
-            stroke="#818cf8"
-            strokeWidth="6"
-            strokeDasharray={`${2 * Math.PI * 46}`}
-            strokeDashoffset={`${2 * Math.PI * 46 * (1 - holdProgress)}`}
-            strokeLinecap="round"
-            transform="rotate(-90 50 50)"
-            style={{ transition: 'stroke-dashoffset 0.1s linear' }}
-          />
-        </svg>
-      )}
-      <span className="text-4xl">{side === 'left' ? '👈' : '👉'}</span>
-      <span className="text-sm font-bold text-white">{label}</span>
-      {isCandidate && (
-        <span className="absolute -top-2 -right-2 rounded-full bg-indigo-500 px-2 py-0.5 text-xs font-bold text-white shadow">
-          {pct}%
+    <div className="flex flex-col items-center gap-2">
+      {showHold && <HoldProgressBar progress={holdProgress} />}
+      <div
+        ref={innerRef}
+        className={`relative flex w-48 min-h-[7.25rem] flex-col items-center justify-center gap-2 rounded-2xl border-2 px-4 py-4 backdrop-blur-md transition-all duration-150 ${
+          isCandidate
+            ? 'border-emerald-400/70 bg-slate-950/88 shadow-[0_12px_40px_rgba(0,0,0,0.55)]'
+            : active
+              ? 'border-indigo-400/70 bg-indigo-950/80 scale-[1.02]'
+              : 'border-white/35 bg-slate-950/88 shadow-[0_12px_40px_rgba(0,0,0,0.55)]'
+        }`}
+      >
+        <span className="absolute top-2 left-2 rounded-md bg-black/45 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/55">
+          {sideLabel}
         </span>
-      )}
+        <span className="text-3xl">{side === 'left' ? '👈' : '👉'}</span>
+        <span className="text-sm font-semibold text-white">{label}</span>
+      </div>
     </div>
   );
 }
@@ -85,7 +73,7 @@ export function GestureTestPage() {
     location.state?.calibration ?? DEFAULT_CALIBRATION;
 
   const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [step, setStep] = useState<TestStep>('intro');
+  const [step, setStep] = useState<TestStep>('point-left');
   const [leftConfirmed, setLeftConfirmed] = useState(false);
   const [rightConfirmed, setRightConfirmed] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
@@ -124,10 +112,13 @@ export function GestureTestPage() {
 
   const gestureAllowed = isGestureInputAllowed(selectionMode);
 
+  const facingMode = settings?.cameraFacingMode ?? 'user';
+  const liveCalibration = calibrationForFacing(calibration, facingMode);
+
   const { gestureOutput, diagnostics, resetGesture } = useVisionDetection({
     videoRef,
     containerRef,
-    calibration,
+    calibration: liveCalibration,
     cameraState,
     enableHandLandmarker: settings?.enableHandLandmarker ?? true,
     targetSensitivity,
@@ -189,9 +180,9 @@ export function GestureTestPage() {
     if (settings) updateSettings({ lastUsedLessonId: lessonId });
     stop();
     navigate(`/play/${lessonId}/game`, {
-      state: mergePlayState(location.state, { calibration }),
+      state: mergePlayState(location.state, { calibration: liveCalibration }),
     });
-  }, [settings, lessonId, calibration, navigate, stop, location.state]);
+  }, [settings, lessonId, liveCalibration, navigate, stop, location.state]);
 
   useEffect(() => {
     if (step !== 'left-done') return;
@@ -205,7 +196,7 @@ export function GestureTestPage() {
     return () => clearTimeout(timer);
   }, [step, handleStartGame]);
 
-  const isMirrored = calibration.mirrored;
+  const isMirrored = liveCalibration.mirrored;
   const displayW = containerRef.current?.offsetWidth ?? window.innerWidth;
   const displayH = containerRef.current?.offsetHeight ?? window.innerHeight;
   const videoW = videoRef.current?.videoWidth ?? 0;
@@ -213,16 +204,14 @@ export function GestureTestPage() {
 
   const instruction = (): string => {
     switch (step) {
-      case 'intro':
-        return 'Point your hand at the LEFT card, then the RIGHT card — same as in the game.';
       case 'point-left':
-        return 'Point at the LEFT card below and hold…';
+        return 'Point at LEFT and hold';
       case 'left-done':
-        return 'Left detected! Get ready for the right card…';
+        return 'Left OK — point RIGHT next';
       case 'point-right':
-        return 'Point at the RIGHT card below and hold…';
+        return 'Point at RIGHT and hold';
       case 'right-done':
-        return 'Right detected! Starting game…';
+        return 'Starting game…';
       default:
         return '';
     }
@@ -243,9 +232,7 @@ export function GestureTestPage() {
             ← Back
           </button>
           <h1 className="text-lg font-bold text-white">Gesture Test</h1>
-          <button onClick={handleStartGame} className="btn btn-secondary btn-sm text-xs">
-            Skip
-          </button>
+          <div className="w-[4.5rem]" aria-hidden="true" />
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center gap-4">
@@ -255,9 +242,9 @@ export function GestureTestPage() {
           )}
 
           {cameraState.status === 'active' && (
-            <div className="glass-card max-w-md px-6 py-4 text-center space-y-3">
-              <p className="font-bold text-white">{instruction()}</p>
-              <div className="flex justify-center gap-4 text-sm">
+            <div className="glass-card max-w-md px-5 py-3 text-center space-y-2 mb-auto mt-auto">
+              <p className="font-bold text-white text-sm">{instruction()}</p>
+              <div className="flex justify-center gap-4 text-xs">
                 <span className={leftConfirmed ? 'text-green-400' : 'text-white/40'}>
                   {leftConfirmed ? '✅ Left' : '⬜ Left'}
                 </span>
@@ -266,8 +253,8 @@ export function GestureTestPage() {
                 </span>
               </div>
               {!gestureAllowed && (
-                <p className="text-xs text-amber-300/90 leading-relaxed">
-                  Turn off Touch-only mode to test gestures.
+                <p className="text-xs text-amber-300/90">
+                  Turn off Touch-only mode in Settings.
                 </p>
               )}
               {(step === 'point-left' || step === 'point-right') && (
@@ -278,22 +265,13 @@ export function GestureTestPage() {
                   touchFallbackActive={false}
                 />
               )}
-              {step === 'intro' && (
-                <button
-                  onClick={() => setStep('point-left')}
-                  className="btn btn-primary btn-lg w-full"
-                  disabled={!gestureAllowed}
-                >
-                  Start Test
-                </button>
-              )}
             </div>
           )}
         </div>
 
         {(step === 'point-left' || step === 'point-right' || step === 'left-done' || step === 'right-done') && (
           <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute left-[21%] top-[53%] -translate-x-1/2 -translate-y-1/2">
+            <div className="absolute left-[12%] top-[53%] -translate-x-1/2 -translate-y-1/2">
               <TestChoiceCard
                 innerRef={leftRef}
                 side="left"
@@ -303,7 +281,7 @@ export function GestureTestPage() {
                 holdProgress={step === 'point-left' && gestureOutput.candidateSide === 'left' ? gestureOutput.holdProgress : 0}
               />
             </div>
-            <div className="absolute left-[79%] top-[53%] -translate-x-1/2 -translate-y-1/2">
+            <div className="absolute left-[88%] top-[53%] -translate-x-1/2 -translate-y-1/2">
               <TestChoiceCard
                 innerRef={rightRef}
                 side="right"

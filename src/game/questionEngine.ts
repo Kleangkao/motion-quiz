@@ -10,21 +10,14 @@ export function shuffleArray<T>(arr: T[]): T[] {
 }
 
 /**
- * Build an infinite question queue by cycling through the lesson questions.
- * For `random` mode, shuffle each cycle.
- * We generate enough questions to fill the duration (at ~6s per question).
+ * One playthrough: each lesson question appears once (shuffled or in order).
+ * The game timer still caps total time; questions are not repeated to fill duration.
  */
 export function buildQuestionQueue(
   questions: QuizQuestion[],
   order: 'random' | 'sequential',
-  durationSeconds: number,
+  _durationSeconds?: number,
 ): QuizQuestion[] {
   if (questions.length === 0) return [];
-  const approxNeeded = Math.max(questions.length, Math.ceil(durationSeconds / 6));
-  const queue: QuizQuestion[] = [];
-  while (queue.length < approxNeeded) {
-    const cycle = order === 'random' ? shuffleArray(questions) : [...questions];
-    queue.push(...cycle);
-  }
-  return queue.slice(0, approxNeeded);
+  return order === 'random' ? shuffleArray(questions) : [...questions];
 }

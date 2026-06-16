@@ -71,7 +71,7 @@ function WalletOptions({
   return (
     <div className="space-y-2">
       <p className="text-xs text-white/50 leading-relaxed">
-        Browser wallet mode — choose Phantom or Solflare. This is not Mobile Wallet Adapter.
+        Pick Phantom or Solflare. Browser extension only, not Mobile Wallet Adapter.
       </p>
       {options.map((wallet) => (
         <WalletRow key={wallet.id} wallet={wallet} connecting={connecting} onSelect={onSelect} />

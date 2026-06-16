@@ -1,4 +1,5 @@
 import type { QuizQuestion, QuizChoice, InputMethod } from '@/storage/types';
+import type { PhotoResumeMode } from './sessionPhotoSchedule';
 
 export type GameStatus =
   | 'idle'
@@ -46,7 +47,7 @@ export type GameAction =
   | { type: 'SUBMIT_ANSWER'; payload: { side: 'left' | 'right'; inputMethod: InputMethod } }
   | { type: 'NEXT_QUESTION' }
   | { type: 'START_PHOTO_CAPTURE' }
-  | { type: 'END_PHOTO_CAPTURE' }
+  | { type: 'END_PHOTO_CAPTURE'; payload?: { mode?: PhotoResumeMode } }
   | { type: 'PAUSE' }
   | { type: 'RESUME' }
   | { type: 'END' }

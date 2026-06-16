@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { getResultSession } from '@/storage/resultStorage';
 import type { ResultSession } from '@/storage/types';
 import { PageLayout } from '@/components/layout/PageLayout';
@@ -7,12 +7,22 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
 import { ScoreProofPanel } from '@/components/result/ScoreProofPanel';
 import { GameMomentPanel } from '@/components/result/GameMomentPanel';
+import { SessionPhotoGallery } from '@/components/result/SessionPhotoGallery';
+import { getSessionPhotos } from '@/game/sessionPhotoCache';
 
 export function ResultPage() {
   const { lessonId, sessionId } = useParams<{ lessonId: string; sessionId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [session, setSession] = useState<ResultSession | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const sessionPhotos = useMemo(() => {
+    const fromNav = (location.state as { sessionPhotos?: string[] } | null)?.sessionPhotos;
+    if (fromNav?.length) return fromNav;
+    if (sessionId) return getSessionPhotos(sessionId) ?? [];
+    return [];
+  }, [location.state, sessionId]);
 
   useEffect(() => {
     if (sessionId) {
@@ -26,7 +36,7 @@ export function ResultPage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center"><LoadingSpinner /></div>;
   if (!session) return (
     <div className="min-h-screen flex items-center justify-center">
-      <ErrorMessage title="Result not found" message="This session could not be found." onRetry={() => navigate('/solo')} />
+      <ErrorMessage title="Result not found" message="This session could not be found." onRetry={() => navigate('/play')} />
     </div>
   );
 
@@ -61,7 +71,11 @@ export function ResultPage() {
 
         <ScoreProofPanel session={session} onUpdated={setSession} />
 
-        <GameMomentPanel session={session} />
+        {sessionPhotos.length > 0 && (
+          <SessionPhotoGallery photos={sessionPhotos} sessionId={session.id} />
+        )}
+
+        <GameMomentPanel session={session} sessionPhotos={sessionPhotos} />
 
         <div className="glass-card p-5">
           <h3 className="font-bold text-white mb-4">Question Breakdown</h3>
@@ -80,8 +94,8 @@ export function ResultPage() {
           <button onClick={() => navigate(`/play/${lessonId}/gesture-test`)} className="btn btn-primary btn-lg flex-1">
             Play Again
           </button>
-          <button onClick={() => navigate(session.playMode === 'challenge' ? '/challenge' : '/solo')} className="btn btn-secondary btn-lg flex-1">
-            {session.playMode === 'challenge' ? 'Challenges' : 'Quiz Packs'}
+          <button onClick={() => navigate('/play')} className="btn btn-secondary btn-lg flex-1">
+            All Packs
           </button>
         </div>
       </div>

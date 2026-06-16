@@ -2,78 +2,94 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getSettings } from '@/storage/settingsStorage';
 import { getLesson } from '@/storage/lessonStorage';
-import { useWallet, shortenAddress } from '@/solana/WalletProvider';
-import { BrowserWalletPicker } from '@/components/wallet/BrowserWalletPicker';
-import type { BrowserWalletId } from '@/solana/web-wallet-browser';
+import {
+  ensureStarterLessons,
+  FEATURED_PLAY_PACK_IDS,
+  isRetiredBuiltinPack,
+  playStateForLesson,
+} from '@/storage/seedLessons';
 import type { LessonPack } from '@/storage/types';
+import { WalletHeaderButton } from '@/components/wallet/WalletHeaderButton';
 
 export function HomePage() {
   const navigate = useNavigate();
-  const {
-    address,
-    walletLabel,
-    isBrowserWalletMode,
-    connect,
-    disconnect,
-    connecting,
-    error,
-  } = useWallet();
   const [lastLesson, setLastLesson] = useState<LessonPack | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [featuredLessons, setFeaturedLessons] = useState<LessonPack[]>([]);
 
   useEffect(() => {
     async function load() {
+      await ensureStarterLessons();
       const settings = await getSettings();
       if (settings.lastUsedLessonId) {
         const found = await getLesson(settings.lastUsedLessonId);
-        if (found) setLastLesson(found);
+        if (found && !isRetiredBuiltinPack(found)) setLastLesson(found);
       }
+      const featured = await Promise.all(
+        FEATURED_PLAY_PACK_IDS.map((id) => getLesson(id)),
+      );
+      setFeaturedLessons(featured.filter(Boolean) as LessonPack[]);
     }
     load();
   }, []);
 
-  const handleBrowserConnect = async (id: BrowserWalletId) => {
-    try {
-      await connect(id);
-      setPickerOpen(false);
-    } catch {
-      // error surfaced via wallet context
-    }
+  const startPack = (lesson: LessonPack) => {
+    navigate(`/play/${lesson.id}/calibrate`, {
+      state: playStateForLesson(lesson),
+    });
   };
 
-  const modes = [
-    { path: '/solo', emoji: '🎯', title: 'Solo Play', desc: 'Built-in quiz packs' },
-    { path: '/challenge', emoji: '🏁', title: 'Challenge Mode', desc: 'Import & play host challenges' },
-    { path: '/challenge/host', emoji: '🛠', title: 'Host Mode', desc: 'Create & export quiz packs' },
+  const primaryModes = [
+    { path: '/play', emoji: '🎮', title: 'Play', desc: 'Built-in quiz packs' },
     { path: '/results', emoji: '📊', title: 'Results', desc: 'Local history & proofs' },
     { path: '/settings', emoji: '⚙', title: 'Settings', desc: 'Camera & gesture tuning' },
   ] as const;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-indigo-950 to-purple-950 flex flex-col p-5 pb-8 gap-5 max-w-lg mx-auto">
-      <header className="pt-4 space-y-1">
-        <div className="text-4xl">📱</div>
-        <h1 className="text-3xl font-black text-white tracking-tight">Seeker Motion Quiz</h1>
-        <p className="text-white/60 text-sm">
-          Point left or right with your camera — built for Solana Mobile workshops & community events.
-        </p>
+      <header className="pt-4 flex items-start justify-between gap-3">
+        <div className="space-y-1 min-w-0">
+          <div className="text-4xl">📱</div>
+          <h1 className="text-3xl font-black text-white tracking-tight">Seeker Motion Quiz</h1>
+          <p className="text-white/60 text-sm">
+            Point left or right with your camera. Built for Solana Mobile workshops and community events.
+          </p>
+        </div>
+        <div className="relative flex-shrink-0 pt-1">
+          <WalletHeaderButton />
+        </div>
       </header>
 
       {lastLesson && (
         <button
-          onClick={() =>
-            navigate(`/play/${lastLesson.id}/calibrate`, {
-              state: { playMode: lastLesson.packKind === 'challenge' ? 'challenge' : 'solo' },
-            })
-          }
+          onClick={() => startPack(lastLesson)}
           className="btn btn-primary btn-xl w-full"
         >
           ▶ Continue: {lastLesson.title}
         </button>
       )}
 
+      {featuredLessons.length > 0 && (
+        <section className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-white/40">Quick play</p>
+          <div className="grid gap-2">
+            {featuredLessons.slice(0, 2).map((lesson) => (
+              <button
+                key={lesson.id}
+                onClick={() => startPack(lesson)}
+                className="glass-card p-4 text-left flex items-center gap-3 active:scale-[0.99] transition hover:bg-white/15"
+              >
+                <span className="text-2xl">
+                  {lesson.id === 'islanddao-challenge' ? '🏝️' : '◎'}
+                </span>
+                <div className="font-bold text-white">{lesson.title}</div>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
       <nav className="grid gap-3">
-        {modes.map(({ path, emoji, title, desc }) => (
+        {primaryModes.map(({ path, emoji, title, desc }) => (
           <button
             key={path}
             onClick={() => navigate(path)}
@@ -88,60 +104,8 @@ export function HomePage() {
         ))}
       </nav>
 
-      <div className="glass-card p-4 space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs text-white/40 uppercase tracking-wide">Wallet</p>
-            {address && walletLabel ? (
-              <p className="text-sm text-white/80 mt-1">
-                Connected via {walletLabel}:{' '}
-                <span className="font-mono text-indigo-300">{shortenAddress(address, 4)}</span>
-              </p>
-            ) : (
-              <p className="text-sm text-white/80 mt-1">
-                {isBrowserWalletMode
-                  ? 'Not connected — optional for play (browser wallets)'
-                  : 'Not connected — optional for play (Solana Mobile)'}
-              </p>
-            )}
-          </div>
-          {address ? (
-            <button onClick={() => disconnect()} className="btn btn-secondary btn-sm flex-shrink-0">
-              Disconnect
-            </button>
-          ) : isBrowserWalletMode ? (
-            <button
-              onClick={() => setPickerOpen(true)}
-              disabled={connecting}
-              className="btn btn-secondary btn-sm flex-shrink-0"
-            >
-              {connecting ? '…' : 'Connect'}
-            </button>
-          ) : (
-            <button
-              onClick={() => connect()}
-              disabled={connecting}
-              className="btn btn-secondary btn-sm flex-shrink-0"
-            >
-              {connecting ? '…' : 'Connect'}
-            </button>
-          )}
-        </div>
-        {error && !pickerOpen && <p className="text-xs text-red-400">{error}</p>}
-      </div>
-
-      {pickerOpen && (
-        <BrowserWalletPicker
-          open
-          onClose={() => setPickerOpen(false)}
-          onSelect={handleBrowserConnect}
-          connecting={connecting}
-          error={error}
-        />
-      )}
-
       <p className="text-xs text-white/30 text-center leading-relaxed">
-        Camera processing stays on your device. Video is not uploaded. Wallet signing is off-chain only — no gas, no transfers.
+        Camera processing stays on your device. Video is not uploaded. Wallet signing is off-chain only. No gas, no transfers.
       </p>
     </div>
   );

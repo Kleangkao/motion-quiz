@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useCamera } from '@/camera/useCamera';
 import { useVisionDetection } from '@/vision/useVisionDetection';
@@ -29,8 +29,15 @@ import { PhotoCaptureMiniGame } from '@/components/game/PhotoCaptureMiniGame';
 import { DebugOverlay } from '@/components/game/DebugOverlay';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
+import { setSessionPhotos as storeSessionPhotos } from '@/game/sessionPhotoCache';
+import {
+  resolvePostFeedbackPhotoAction,
+  type PhotoResumeMode,
+} from '@/game/sessionPhotoSchedule';
+import { calibrationForFacing } from '@/camera/cameraSetup';
 
-const FEEDBACK_DURATION_MS = 900;
+const FEEDBACK_DURATION_MS = 550;
+const CORRECT_ANSWER_PAUSE_MS = 2000;
 
 export function GamePage() {
   const { lessonId } = useParams<{ lessonId: string }>();
@@ -77,8 +84,10 @@ export function GamePage() {
   const targetZonesRef = useRef<TargetZoneSet | null>(null);
   const gameStateRef = useRef(gameState);
   const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const advanceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastLockedSideRef = useRef<string | null>(null);
   const timerLastRef = useRef(performance.now());
+  const photoResumeRef = useRef<PhotoResumeMode>('next');
 
   gameStateRef.current = gameState;
 
@@ -109,10 +118,16 @@ export function GamePage() {
   );
   targetZonesRef.current = targetZones;
 
+  const cameraFacing = appSettings?.cameraFacingMode ?? 'user';
+  const liveCalibration = useMemo(
+    () => calibrationForFacing(calibration, cameraFacing),
+    [calibration, cameraFacing],
+  );
+
   const { gestureOutput, diagnostics, resetGesture } = useVisionDetection({
     videoRef,
     containerRef,
-    calibration,
+    calibration: liveCalibration,
     cameraState,
     enableHandLandmarker: appSettings?.enableHandLandmarker ?? true,
     targetSensitivity,
@@ -169,6 +184,7 @@ export function GamePage() {
     return () => {
       stop();
       if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+      if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
@@ -189,6 +205,11 @@ export function GamePage() {
     return () => video.removeEventListener('loadedmetadata', onMeta);
   }, [cameraState.status]);
 
+  const startScheduledPhoto = useCallback((resume: PhotoResumeMode) => {
+    photoResumeRef.current = resume;
+    dispatch({ type: 'START_PHOTO_CAPTURE' });
+  }, []);
+
   const submitAnswer = useCallback((side: 'left' | 'right', method: InputMethod) => {
     const gs = gameStateRef.current;
     if (gs.status !== 'playing' || !gs.activeQuestion) return;
@@ -196,9 +217,11 @@ export function GamePage() {
     resetGesture();
     lastLockedSideRef.current = null;
 
+    const q = gs.activeQuestion.question;
+    const isCorrect = side === q.correctSide;
+
     dispatch({ type: 'SUBMIT_ANSWER', payload: { side, inputMethod: method } });
 
-    const q = gs.activeQuestion.question;
     setQuestionResults((prev) => [
       ...prev,
       {
@@ -206,22 +229,51 @@ export function GamePage() {
         prompt: q.prompt,
         correctSide: q.correctSide,
         selectedSide: side,
-        isCorrect: side === q.correctSide,
+        isCorrect,
         inputMethod: method,
       },
     ]);
 
     if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
+    if (advanceTimeoutRef.current) clearTimeout(advanceTimeoutRef.current);
+
     feedbackTimeoutRef.current = setTimeout(() => {
-      const photoEnabled = appSettingsRef.current?.enablePhotoMiniGame ?? false;
-      dispatch({ type: photoEnabled ? 'START_PHOTO_CAPTURE' : 'NEXT_QUESTION' });
+      const current = gameStateRef.current;
+      const answeredIndex = current.currentIndex;
+      const total = current.questionQueue.length;
+      const action = resolvePostFeedbackPhotoAction(answeredIndex, total);
+
+      if (action === 'photo-then-finish') {
+        startScheduledPhoto('finish');
+        return;
+      }
+      if (action === 'photo-then-next') {
+        startScheduledPhoto('next');
+        return;
+      }
+
+      const advance = () => {
+        resetGesture();
+        lastLockedSideRef.current = null;
+        dispatch({ type: 'NEXT_QUESTION' });
+      };
+
+      if (isCorrect && action === 'next') {
+        const extraPause = CORRECT_ANSWER_PAUSE_MS - FEEDBACK_DURATION_MS;
+        if (extraPause > 0) {
+          advanceTimeoutRef.current = setTimeout(advance, extraPause);
+          return;
+        }
+      }
+
+      advance();
     }, FEEDBACK_DURATION_MS);
-  }, [resetGesture]);
+  }, [resetGesture, startScheduledPhoto]);
 
   const handlePhotoComplete = useCallback((photoDataUrl: string | null) => {
     if (photoDataUrl) setSessionPhotos((prev) => [...prev, photoDataUrl]);
     resetGesture();
-    dispatch({ type: 'END_PHOTO_CAPTURE' });
+    dispatch({ type: 'END_PHOTO_CAPTURE', payload: { mode: photoResumeRef.current } });
   }, [resetGesture]);
 
   // Gesture lock → submit (primary input)
@@ -272,6 +324,12 @@ export function GamePage() {
     }
   }, [gameState, resultSaved, questionResults, diagnostics.fps, diagnostics.cameraResolution]);
 
+  useEffect(() => {
+    if (gameState.status === 'finished' && gameState.sessionId) {
+      storeSessionPhotos(gameState.sessionId, sessionPhotos);
+    }
+  }, [gameState.status, gameState.sessionId, sessionPhotos]);
+
   // Keyboard (debug mode only)
   useEffect(() => {
     if (!keyboardAllowed) return;
@@ -298,6 +356,7 @@ export function GamePage() {
   const handlePlayAgain = () => {
     setResultSaved(false);
     setQuestionResults([]);
+    setSessionPhotos([]);
     resetGesture();
     navigate(`/play/${lessonId}/gesture-test`, { state: { calibration } });
   };
@@ -305,7 +364,7 @@ export function GamePage() {
   if (loadError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900">
-        <ErrorMessage title="Failed to load game" message={loadError} onRetry={() => navigate('/solo')} />
+        <ErrorMessage title="Failed to load game" message={loadError} onRetry={() => navigate('/play')} />
       </div>
     );
   }
@@ -319,7 +378,7 @@ export function GamePage() {
   }
 
   const activeQ = gameState.activeQuestion?.question;
-  const isMirrored = calibration.mirrored;
+  const isMirrored = liveCalibration.mirrored;
   const displayW = containerRef.current?.offsetWidth ?? window.innerWidth;
   const displayH = containerRef.current?.offsetHeight ?? window.innerHeight;
   const videoW = videoRef.current?.videoWidth ?? 0;
@@ -346,7 +405,7 @@ export function GamePage() {
           <p className="text-white/60 text-sm px-6 text-center">
             Camera unavailable.
             {touchAllowed
-              ? ' Touch fallback is enabled — tap a choice to answer.'
+              ? ' Touch fallback is enabled. Tap a choice to answer.'
               : ' Enable touch fallback in Settings to answer without gestures.'}
           </p>
         </div>
@@ -354,16 +413,20 @@ export function GamePage() {
 
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/50 pointer-events-none" />
 
-      {/* Top bar */}
-      <div className="absolute top-0 left-0 right-0 safe-top flex items-center justify-between px-4 py-3 z-10">
-        <button
-          onClick={() => { dispatch({ type: 'END' }); stop(); navigate('/solo'); }}
-          className="btn btn-secondary btn-sm text-sm"
-        >
-          ✕
-        </button>
-        <TimerBadge remainingMs={gameState.remainingMs} />
-        <div className="flex items-center gap-2">
+      {/* Top bar — 3-column grid keeps timer visually centered */}
+      <div className="absolute top-0 left-0 right-0 safe-top grid grid-cols-3 items-center px-4 py-3 z-10">
+        <div className="flex justify-start">
+          <button
+            onClick={() => { dispatch({ type: 'END' }); stop(); navigate('/play'); }}
+            className="btn btn-secondary btn-sm text-sm"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="flex justify-center">
+          <TimerBadge remainingMs={gameState.remainingMs} />
+        </div>
+        <div className="flex items-center justify-end gap-2">
           {gameState.status === 'playing' && (
             <button onClick={() => dispatch({ type: 'PAUSE' })} className="btn btn-secondary btn-sm">
               ⏸
@@ -371,8 +434,8 @@ export function GamePage() {
           )}
           <ScoreBadge score={gameState.score} />
           {sessionPhotos.length > 0 && (
-            <span className="rounded-xl bg-pink-600/80 px-2 py-1 text-xs font-bold text-white" title="Photos captured this session">
-              📸 {sessionPhotos.length}
+            <span className="rounded-xl bg-pink-600/80 px-2 py-1 text-xs font-bold text-white" title="Photo moments this round">
+              📸 {sessionPhotos.length}/3
             </span>
           )}
         </div>
@@ -387,7 +450,7 @@ export function GamePage() {
         </div>
       )}
 
-      {activeQ && gameState.status !== 'finished' && (
+      {activeQ && gameState.status !== 'finished' && !isPhotoCapture && (
         <div className="absolute top-1/4 left-0 right-0 flex flex-col items-center z-10 pointer-events-none">
           <div className="rounded-2xl bg-black/60 px-6 py-3 backdrop-blur">
             <p className="text-3xl font-black text-white text-center drop-shadow-lg">
@@ -399,7 +462,7 @@ export function GamePage() {
 
       {activeQ && gameState.status !== 'finished' && gameState.status !== 'paused' && !isPhotoCapture && (
         <div className="absolute inset-0 z-10 pointer-events-none">
-          <div className="absolute left-[21%] top-[53%] -translate-x-1/2 -translate-y-1/2 max-w-[38vw]">
+          <div className="absolute left-[12%] top-[53%] -translate-x-1/2 -translate-y-1/2 max-w-[38vw]">
             <ChoiceCard
               ref={leftChoiceRef}
               choice={activeQ.left}
@@ -417,7 +480,7 @@ export function GamePage() {
               onTouch={() => touchAllowed && submitAnswer('left', 'touch')}
             />
           </div>
-          <div className="absolute left-[79%] top-[53%] -translate-x-1/2 -translate-y-1/2 max-w-[38vw]">
+          <div className="absolute left-[88%] top-[53%] -translate-x-1/2 -translate-y-1/2 max-w-[38vw]">
             <ChoiceCard
               ref={rightChoiceRef}
               choice={activeQ.right}
@@ -472,7 +535,7 @@ export function GamePage() {
           <button onClick={() => dispatch({ type: 'RESUME' })} className="btn btn-primary btn-xl">
             Resume
           </button>
-          <button onClick={() => { stop(); navigate('/solo'); }} className="btn btn-secondary btn-md">
+          <button onClick={() => { stop(); navigate('/play'); }} className="btn btn-secondary btn-md">
             Quit Game
           </button>
         </div>
@@ -502,6 +565,7 @@ export function GamePage() {
           state={gameState}
           sessionId={gameState.sessionId}
           lessonId={lessonId!}
+          sessionPhotos={sessionPhotos}
           onPlayAgain={handlePlayAgain}
         />
       )}

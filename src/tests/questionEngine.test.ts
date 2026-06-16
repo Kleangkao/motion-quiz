@@ -31,26 +31,25 @@ describe('shuffleArray', () => {
 describe('buildQuestionQueue', () => {
   const qs = [makeQuestion('a'), makeQuestion('b'), makeQuestion('c')];
 
-  it('returns at least the lesson questions count', () => {
-    const queue = buildQuestionQueue(qs, 'sequential', 60);
-    expect(queue.length).toBeGreaterThanOrEqual(qs.length);
+  it('returns each question once in sequential mode', () => {
+    const queue = buildQuestionQueue(qs, 'sequential', 120);
+    expect(queue).toHaveLength(3);
+    expect(queue.map((q) => q.id)).toEqual(['a', 'b', 'c']);
   });
 
   it('returns empty for empty input', () => {
     expect(buildQuestionQueue([], 'random', 120)).toHaveLength(0);
   });
 
-  it('sequential mode preserves order within a cycle', () => {
-    const queue = buildQuestionQueue(qs, 'sequential', 120);
-    // First cycle should be a-b-c
-    expect(queue[0].id).toBe('a');
-    expect(queue[1].id).toBe('b');
-    expect(queue[2].id).toBe('c');
+  it('does not repeat questions to fill duration', () => {
+    const queue = buildQuestionQueue([makeQuestion('a'), makeQuestion('b')], 'sequential', 120);
+    expect(queue).toHaveLength(2);
+    expect(queue.map((q) => q.id)).toEqual(['a', 'b']);
   });
 
-  it('covers enough questions for duration', () => {
+  it('random mode includes every question exactly once', () => {
     const queue = buildQuestionQueue(qs, 'random', 120);
-    // At ~6s per question, need at least 20 for 120s
-    expect(queue.length).toBeGreaterThanOrEqual(20);
+    expect(queue).toHaveLength(3);
+    expect(new Set(queue.map((q) => q.id))).toEqual(new Set(['a', 'b', 'c']));
   });
 });

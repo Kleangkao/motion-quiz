@@ -44,7 +44,7 @@ export function TeacherDashboardPage() {
 
   return (
     <PageLayout
-      title="Host Mode"
+      title="Create Pack"
       backTo="/"
       actions={
         <button onClick={() => navigate('/challenge/host/lesson/new')} className="btn btn-primary btn-sm">

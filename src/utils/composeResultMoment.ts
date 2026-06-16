@@ -14,6 +14,12 @@ export interface GameMomentInput {
   endedAt: string;
   walletAddress?: string;
   hasSignedProof: boolean;
+  photoDataUrl?: string;
+}
+
+export function defaultPhotoIndex(count: number): number {
+  if (count <= 0) return 0;
+  return Math.min(count - 1, Math.floor(count / 2));
 }
 
 export function resultSessionToGameMomentInput(session: ResultSession): GameMomentInput {
@@ -46,6 +52,14 @@ function formatElapsedMs(startedAt: string, endedAt: string): string {
   const sec = totalSec % 60;
   if (min > 0) return `${min}m ${sec}s`;
   return `${sec}s`;
+}
+
+function formatCompletedDate(endedAt: string): string {
+  return new Date(endedAt).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
@@ -115,127 +129,360 @@ function strokeRoundRect(
   ctx.stroke();
 }
 
+function loadImage(dataUrl: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to load photo'));
+    img.src = dataUrl;
+  });
+}
+
+function drawCoverImage(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): void {
+  const scale = Math.max(w / img.width, h / img.height);
+  const dw = img.width * scale;
+  const dh = img.height * scale;
+  const ox = x + (w - dw) / 2;
+  const oy = y + (h - dh) / 2;
+  ctx.drawImage(img, ox, oy, dw, dh);
+}
+
+function drawPhotoScrim(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+): void {
+  const gradient = ctx.createLinearGradient(0, y, 0, y + h);
+  gradient.addColorStop(0, 'rgba(15, 23, 42, 0)');
+  gradient.addColorStop(0.45, 'rgba(15, 23, 42, 0.35)');
+  gradient.addColorStop(1, 'rgba(15, 23, 42, 0.88)');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(x, y, w, h);
+}
+
+function drawPillBadge(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+): number {
+  ctx.font = 'bold 22px Nunito, system-ui, sans-serif';
+  const padX = 18;
+  const padY = 10;
+  const textW = ctx.measureText(text).width;
+  const w = textW + padX * 2;
+  const h = 22 + padY * 2;
+
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.55)';
+  fillRoundRect(ctx, x, y, w, h, h / 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+  ctx.lineWidth = 1.5;
+  strokeRoundRect(ctx, x, y, w, h, h / 2);
+
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(text, x + padX, y + h / 2);
+  ctx.textBaseline = 'alphabetic';
+  return w;
+}
+
+function drawStatTile(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  value: string,
+  label: string,
+  accent: string,
+): void {
+  ctx.fillStyle = 'rgba(255,255,255,0.07)';
+  fillRoundRect(ctx, x, y, w, h, 20);
+  ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+  ctx.lineWidth = 1;
+  strokeRoundRect(ctx, x, y, w, h, 20);
+
+  ctx.textAlign = 'center';
+  ctx.font = `bold 44px Nunito, system-ui, sans-serif`;
+  ctx.fillStyle = accent;
+  ctx.fillText(value, x + w / 2, y + h * 0.42);
+  ctx.font = '600 22px Nunito, system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.fillText(label, x + w / 2, y + h * 0.74);
+}
+
 const W = 1080;
 const H = 1350;
+const CARD_X = 40;
+const CARD_Y = 40;
+const CARD_W = W - CARD_X * 2;
+const CARD_H = H - CARD_Y * 2;
+const PAD = 44;
+const SECTION_GAP = 48;
+const STAT_TILE_H = 128;
+const MIN_PHOTO_H = 420;
+
+function drawCardBackground(ctx: CanvasRenderingContext2D): void {
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#0c1222');
+  bg.addColorStop(0.5, '#151033');
+  bg.addColorStop(1, '#3b0764');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  fillRoundRect(ctx, CARD_X, CARD_Y, CARD_W, CARD_H, 36);
+  ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+  ctx.lineWidth = 2;
+  strokeRoundRect(ctx, CARD_X, CARD_Y, CARD_W, CARD_H, 36);
+}
+
+function drawBrandHeader(
+  ctx: CanvasRenderingContext2D,
+  y: number,
+  modeLabel: string,
+): number {
+  const innerX = CARD_X + PAD;
+  const innerW = CARD_W - PAD * 2;
+
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 30px Nunito, system-ui, sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText('Seeker Motion Quiz', innerX, y);
+
+  ctx.font = '600 20px Nunito, system-ui, sans-serif';
+  const badge = modeLabel.toUpperCase();
+  const badgeW = ctx.measureText(badge).width + 28;
+  const badgeX = innerX + innerW - badgeW;
+  const badgeY = y - 26;
+  ctx.fillStyle = 'rgba(129, 140, 248, 0.22)';
+  fillRoundRect(ctx, badgeX, badgeY, badgeW, 36, 18);
+  ctx.fillStyle = '#c7d2fe';
+  ctx.textAlign = 'center';
+  ctx.fillText(badge, badgeX + badgeW / 2, y - 2);
+  ctx.textAlign = 'left';
+
+  return y + 36;
+}
+
+function drawTopicTitle(ctx: CanvasRenderingContext2D, y: number, packName: string): number {
+  const innerX = CARD_X + PAD;
+  const maxW = CARD_W - PAD * 2;
+
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 38px Nunito, system-ui, sans-serif';
+  ctx.fillStyle = '#ffffff';
+  const lines = wrapText(ctx, packName, maxW);
+  for (const line of lines.slice(0, 2)) {
+    ctx.fillText(line, innerX, y);
+    y += 46;
+  }
+  return y + 8;
+}
+
+function drawScoreBlock(ctx: CanvasRenderingContext2D, y: number, score: number): number {
+  const innerX = CARD_X + PAD;
+
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 96px Nunito, system-ui, sans-serif';
+  ctx.fillStyle = '#a5b4fc';
+  ctx.fillText(String(score), innerX, y);
+
+  const scoreW = ctx.measureText(String(score)).width;
+  ctx.font = '600 26px Nunito, system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.fillText('points', innerX + scoreW + 16, y - 8);
+
+  return y + 48;
+}
+
+function drawScoreOnPhoto(
+  ctx: CanvasRenderingContext2D,
+  photoX: number,
+  photoY: number,
+  photoW: number,
+  photoH: number,
+  score: number,
+): void {
+  const scrimH = Math.min(220, Math.max(160, photoH * 0.32));
+  drawPhotoScrim(ctx, photoX, photoY + photoH - scrimH, photoW, scrimH);
+
+  const baseX = photoX + 28;
+  const baseY = photoY + photoH - 36;
+
+  ctx.textAlign = 'left';
+  ctx.font = 'bold 88px Nunito, system-ui, sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(String(score), baseX, baseY);
+
+  const scoreW = ctx.measureText(String(score)).width;
+  ctx.font = '600 24px Nunito, system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.75)';
+  ctx.fillText('points', baseX + scoreW + 14, baseY - 6);
+}
+
+function measureTopicTitle(ctx: CanvasRenderingContext2D, packName: string, startY: number): number {
+  const maxW = CARD_W - PAD * 2;
+  ctx.font = 'bold 38px Nunito, system-ui, sans-serif';
+  const lines = wrapText(ctx, packName, maxW).slice(0, 2);
+  return startY + lines.length * 46 + 8;
+}
+
+function countMetaLines(input: GameMomentInput): number {
+  return input.challengeId || input.walletAddress ? 2 : 1;
+}
+
+interface BottomLayout {
+  statsY: number;
+  metaStartY: number;
+  proofY: number | null;
+  footerY: number;
+}
+
+function computeBottomLayout(input: GameMomentInput): BottomLayout {
+  const footerY = CARD_Y + CARD_H - 44;
+  const metaLineH = 34;
+  const metaBlockH = countMetaLines(input) * metaLineH;
+  const metaStartY = footerY - 52 - metaBlockH;
+
+  let blockTop = metaStartY - SECTION_GAP;
+  let proofY: number | null = null;
+  if (input.hasSignedProof) {
+    const proofH = 52;
+    proofY = blockTop - proofH;
+    blockTop = proofY - SECTION_GAP;
+  }
+
+  const statsY = blockTop - STAT_TILE_H;
+  return { statsY, metaStartY, proofY, footerY };
+}
+
+function drawBottomSections(
+  ctx: CanvasRenderingContext2D,
+  input: GameMomentInput,
+  layout: BottomLayout,
+): void {
+  const innerX = CARD_X + PAD;
+  const innerW = CARD_W - PAD * 2;
+  const gap = 16;
+  const tileW = (innerW - gap * 2) / 3;
+
+  drawStatTile(
+    ctx, innerX, layout.statsY, tileW, STAT_TILE_H,
+    `${input.accuracy.toFixed(0)}%`, 'Accuracy', '#ffffff',
+  );
+  drawStatTile(
+    ctx, innerX + tileW + gap, layout.statsY, tileW, STAT_TILE_H,
+    String(input.correctCount), 'Correct', '#86efac',
+  );
+  drawStatTile(
+    ctx, innerX + (tileW + gap) * 2, layout.statsY, tileW, STAT_TILE_H,
+    String(input.wrongCount), 'Wrong', '#fca5a5',
+  );
+
+  ctx.textAlign = 'center';
+  let metaY = layout.metaStartY + 24;
+  ctx.font = '600 26px Nunito, system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  const timeLine = `${formatElapsedMs(input.startedAt, input.endedAt)} · ${formatCompletedDate(input.endedAt)}`;
+  ctx.fillText(timeLine, innerX + innerW / 2, metaY);
+  metaY += 34;
+
+  const extras: string[] = [];
+  if (input.challengeId) extras.push(`Challenge ${input.challengeId.slice(0, 8)}…`);
+  if (input.walletAddress) extras.push(`Wallet ${shortenAddress(input.walletAddress, 6)}`);
+  if (extras.length > 0) {
+    ctx.font = '600 22px Nunito, system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillText(extras.join(' · '), innerX + innerW / 2, metaY);
+  }
+
+  if (layout.proofY != null) {
+    const badgeW = 380;
+    const badgeH = 52;
+    const badgeX = (W - badgeW) / 2;
+    ctx.fillStyle = 'rgba(34, 197, 94, 0.18)';
+    fillRoundRect(ctx, badgeX, layout.proofY, badgeW, badgeH, 24);
+    ctx.strokeStyle = 'rgba(34, 197, 94, 0.45)';
+    ctx.lineWidth = 1.5;
+    strokeRoundRect(ctx, badgeX, layout.proofY, badgeW, badgeH, 24);
+    ctx.font = 'bold 22px Nunito, system-ui, sans-serif';
+    ctx.fillStyle = '#86efac';
+    ctx.fillText('Signed Score Proof', W / 2, layout.proofY + 32);
+  }
+
+  ctx.textAlign = 'center';
+  ctx.font = '600 20px Nunito, system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.fillText('Saved locally · not uploaded', W / 2, layout.footerY);
+}
 
 /**
  * Compose a portrait result card as a JPEG data URL (local only, no upload).
  */
-export function composeResultMoment(input: GameMomentInput): string | null {
+export async function composeResultMoment(input: GameMomentInput): Promise<string | null> {
+  let photo: HTMLImageElement | null = null;
+  if (input.photoDataUrl) {
+    try {
+      photo = await loadImage(input.photoDataUrl);
+    } catch {
+      photo = null;
+    }
+  }
+
   const canvas = document.createElement('canvas');
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
-  const bg = ctx.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, '#0f172a');
-  bg.addColorStop(0.45, '#1e1b4b');
-  bg.addColorStop(1, '#4c1d95');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
+  drawCardBackground(ctx);
 
-  ctx.fillStyle = 'rgba(255,255,255,0.06)';
-  fillRoundRect(ctx, 64, 64, W - 128, H - 128, 32);
-
-  ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-  ctx.lineWidth = 2;
-  strokeRoundRect(ctx, 64, 64, W - 128, H - 128, 32);
-
-  const pad = 120;
-  let y = 160;
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 52px Nunito, system-ui, sans-serif';
-  ctx.fillText('Seeker Motion Quiz', W / 2, y);
-  y += 48;
-
-  ctx.font = '600 28px Nunito, system-ui, sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.55)';
   const modeLabel = input.playMode === 'challenge' ? 'Challenge' : 'Solo';
-  ctx.fillText(`${modeLabel} · Game Moment`, W / 2, y);
-  y += 72;
+  const innerX = CARD_X + PAD;
+  const innerW = CARD_W - PAD * 2;
+  const layout = computeBottomLayout(input);
 
-  ctx.font = 'bold 44px Nunito, system-ui, sans-serif';
-  ctx.fillStyle = '#ffffff';
-  const titleLines = wrapText(ctx, input.packName, W - pad * 2);
-  for (const line of titleLines.slice(0, 2)) {
-    ctx.fillText(line, W / 2, y);
-    y += 52;
-  }
-  y += 24;
+  let headerY = CARD_Y + PAD;
+  headerY = drawBrandHeader(ctx, headerY, modeLabel);
+  const headerBottom = measureTopicTitle(ctx, input.packName, headerY);
+  drawTopicTitle(ctx, headerY, input.packName);
 
-  ctx.font = 'bold 120px Nunito, system-ui, sans-serif';
-  ctx.fillStyle = '#a5b4fc';
-  ctx.fillText(String(input.score), W / 2, y);
-  y += 36;
-  ctx.font = '600 32px Nunito, system-ui, sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.6)';
-  ctx.fillText('points', W / 2, y);
-  y += 80;
+  if (photo) {
+    const photoY = headerBottom + SECTION_GAP;
+    const photoH = Math.max(MIN_PHOTO_H, layout.statsY - SECTION_GAP - photoY);
 
-  const statY = y;
-  const colW = (W - pad * 2) / 3;
-  const stats = [
-    { label: 'Accuracy', value: `${input.accuracy.toFixed(0)}%` },
-    { label: 'Correct', value: String(input.correctCount) },
-    { label: 'Wrong', value: String(input.wrongCount) },
-  ];
-  stats.forEach((s, i) => {
-    const cx = pad + colW * i + colW / 2;
-    ctx.font = 'bold 48px Nunito, system-ui, sans-serif';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(s.value, cx, statY);
-    ctx.font = '600 24px Nunito, system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.fillText(s.label, cx, statY + 36);
-  });
-  y = statY + 100;
+    ctx.save();
+    fillRoundRect(ctx, innerX, photoY, innerW, photoH, 24);
+    ctx.clip();
+    drawCoverImage(ctx, photo, innerX, photoY, innerW, photoH);
+    ctx.restore();
 
-  ctx.font = '600 28px Nunito, system-ui, sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.65)';
-  ctx.textAlign = 'left';
-  const metaX = pad + 16;
-  const metaLines: string[] = [
-    `Time: ${formatElapsedMs(input.startedAt, input.endedAt)}`,
-    `Completed: ${new Date(input.endedAt).toLocaleString()}`,
-  ];
-  if (input.challengeId) {
-    metaLines.push(`Challenge ID: ${input.challengeId}`);
-  }
-  if (input.walletAddress) {
-    metaLines.push(`Wallet: ${shortenAddress(input.walletAddress, 6)}`);
-  }
-  for (const line of metaLines) {
-    ctx.fillText(line, metaX, y);
-    y += 40;
-  }
-
-  if (input.hasSignedProof) {
-    y += 16;
-    const badgeW = 420;
-    const badgeH = 52;
-    const badgeX = (W - badgeW) / 2;
-    ctx.fillStyle = 'rgba(34, 197, 94, 0.2)';
-    fillRoundRect(ctx, badgeX, y - 36, badgeW, badgeH, 26);
-    ctx.strokeStyle = 'rgba(34, 197, 94, 0.5)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
     ctx.lineWidth = 2;
-    strokeRoundRect(ctx, badgeX, y - 36, badgeW, badgeH, 26);
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 26px Nunito, system-ui, sans-serif';
-    ctx.fillStyle = '#86efac';
-    ctx.fillText('Signed Score Proof', W / 2, y);
+    strokeRoundRect(ctx, innerX, photoY, innerW, photoH, 24);
+
+    drawPillBadge(ctx, 'Game Moment', innerX + 20, photoY + 20);
+    drawScoreOnPhoto(ctx, innerX, photoY, innerW, photoH, input.score);
+  } else {
+    const scoreAreaTop = headerBottom + SECTION_GAP;
+    const scoreAreaBottom = layout.statsY - SECTION_GAP;
+    const scoreAreaH = scoreAreaBottom - scoreAreaTop;
+    const scoreBaseline = scoreAreaTop + scoreAreaH * 0.62;
+    drawScoreBlock(ctx, scoreBaseline, input.score);
   }
 
-  const footerY = H - 200;
-  ctx.textAlign = 'center';
-  ctx.font = '600 24px Nunito, system-ui, sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.45)';
-  ctx.fillText('Saved locally. Not uploaded.', W / 2, footerY);
-  ctx.font = '600 22px Nunito, system-ui, sans-serif';
-  ctx.fillStyle = 'rgba(255,255,255,0.3)';
-  ctx.fillText('seeker-motion-quiz · local result card', W / 2, footerY + 36);
+  drawBottomSections(ctx, input, layout);
 
   return canvas.toDataURL('image/jpeg', 0.92);
 }

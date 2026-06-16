@@ -140,7 +140,7 @@ export interface AppSettings {
   enableHandLandmarker: boolean;
   showDebugOverlay: boolean;
   enableSoundEffects: boolean;
-  /** Optional photo mini-game between questions (local only) */
+  /** Photo moments between questions (local only). Default on; disable in Advanced for QA. */
   enablePhotoMiniGame: boolean;
   /** Default: card-centered expanded targets around answer cards */
   selectionMode: SelectionMode;

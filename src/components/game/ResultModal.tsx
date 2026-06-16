@@ -6,10 +6,11 @@ interface Props {
   state: GameState;
   sessionId: string;
   lessonId: string;
+  sessionPhotos?: string[];
   onPlayAgain: () => void;
 }
 
-export function ResultModal({ state, sessionId, lessonId, onPlayAgain }: Props) {
+export function ResultModal({ state, sessionId, lessonId, sessionPhotos = [], onPlayAgain }: Props) {
   const navigate = useNavigate();
   const accuracy = computeAccuracy(state.correctCount, state.totalAnswered);
 
@@ -50,7 +51,11 @@ export function ResultModal({ state, sessionId, lessonId, onPlayAgain }: Props) 
             Play Again
           </button>
           <button
-            onClick={() => navigate(`/play/${lessonId}/result/${sessionId}`)}
+            onClick={() =>
+              navigate(`/play/${lessonId}/result/${sessionId}`, {
+                state: sessionPhotos.length > 0 ? { sessionPhotos } : undefined,
+              })
+            }
             className="btn btn-secondary btn-md w-full"
           >
             View Full Results
@@ -59,7 +64,7 @@ export function ResultModal({ state, sessionId, lessonId, onPlayAgain }: Props) 
             onClick={() => navigate('/play')}
             className="btn btn-secondary btn-md w-full"
           >
-            Back to Lessons
+            Back to Play
           </button>
         </div>
       </div>

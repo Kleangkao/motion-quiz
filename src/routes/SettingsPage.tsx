@@ -2,23 +2,15 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getSettings, updateSettings } from '@/storage/settingsStorage';
 import { enumerateVideoDevices, requestCameraStream, stopStream } from '@/camera/cameraService';
-import type { AppSettings, CameraResolutionPreset, SelectionMode } from '@/storage/types';
+import {
+  mirrorForFacing,
+  shouldOfferFacingPicker,
+} from '@/camera/cameraSetup';
+import type { AppSettings, SelectionMode } from '@/storage/types';
 import type { VideoDevice } from '@/camera/cameraTypes';
 import { PoseLandmarkerService } from '@/vision/poseLandmarker';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-
-const RESOLUTION_OPTIONS: { value: CameraResolutionPreset; label: string }[] = [
-  { value: 'performance', label: 'Performance' },
-  { value: 'balanced', label: 'Balanced' },
-  { value: 'quality', label: 'Quality' },
-];
-
-const SENSITIVITY_OPTIONS: { value: AppSettings['targetSensitivity']; label: string }[] = [
-  { value: 'easy', label: 'Easy' },
-  { value: 'normal', label: 'Normal' },
-  { value: 'strict', label: 'Precise' },
-];
 
 const DETECTION_ZONE_OPTIONS: {
   value: SelectionMode;
@@ -28,7 +20,7 @@ const DETECTION_ZONE_OPTIONS: {
   {
     value: 'card-centered-target',
     label: 'Balanced card target',
-    desc: 'Expanded zone around each answer card — recommended for most players',
+    desc: 'Expanded zone around each answer card. Recommended for most players.',
   },
   {
     value: 'strict-card-target',
@@ -37,8 +29,8 @@ const DETECTION_ZONE_OPTIONS: {
   },
   {
     value: 'wide-zone-debug',
-    label: 'Wide zone for testing',
-    desc: 'Wide left/right halves — useful for QA and troubleshooting',
+    label: 'Wide zone (testing only)',
+    desc: 'Wide left/right halves. May trigger accidentally. Not recommended for normal play.',
   },
 ];
 
@@ -82,6 +74,10 @@ export function SettingsPage() {
     setTimeout(() => setSavedMsg(''), 1500);
   };
 
+  const saveFacing = async (mode: 'user' | 'environment') => {
+    await save({ cameraFacingMode: mode, mirrorCamera: mirrorForFacing(mode) });
+  };
+
   const startCameraTest = async () => {
     if (!settings) return;
     stopStream(streamRef.current);
@@ -95,6 +91,8 @@ export function SettingsPage() {
       videoRef.current.srcObject = stream;
       videoRef.current.play().catch(() => {});
       setCameraTestActive(true);
+      const devList = await enumerateVideoDevices();
+      setDevices(devList);
     }
   };
 
@@ -111,7 +109,7 @@ export function SettingsPage() {
     landmarkerRef.current = lmk;
     try {
       await lmk.load();
-      setPoseStatus('Ready — gesture tracking model loaded');
+      setPoseStatus('Ready. Gesture tracking model loaded.');
     } catch (e) {
       setPoseStatus(e instanceof Error ? e.message : String(e));
     }
@@ -126,6 +124,8 @@ export function SettingsPage() {
   }
 
   const touchOnly = settings.selectionMode === 'debug-touch';
+  const showFacingPicker = shouldOfferFacingPicker(devices);
+  const isMirrored = mirrorForFacing(settings.cameraFacingMode);
 
   const setTouchOnly = (enabled: boolean) => {
     if (enabled) {
@@ -145,87 +145,16 @@ export function SettingsPage() {
         )}
 
         <SettingHint>
-          Tune camera and gesture controls for your device. Changes save automatically.
+          Recommended defaults are already tuned for normal play. Test your camera before you start.
         </SettingHint>
 
-        {/* Quick Setup */}
-        <SectionCard title="Quick Setup">
+        <SectionCard title="Camera">
           <div className="space-y-3">
-            <div>
-              <p className="text-xs text-white/60 mb-2">Camera</p>
-              <div className="flex flex-wrap gap-3">
-                {(['user', 'environment'] as const).map((mode) => (
-                  <label
-                    key={mode}
-                    className="flex items-center gap-2 cursor-pointer text-sm text-white/80"
-                  >
-                    <input
-                      type="radio"
-                      name="facing"
-                      checked={settings.cameraFacingMode === mode}
-                      onChange={() => save({ cameraFacingMode: mode })}
-                      className="accent-indigo-500"
-                    />
-                    {mode === 'user' ? 'Front' : 'Back'}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={settings.mirrorCamera}
-                onChange={(e) => save({ mirrorCamera: e.target.checked })}
-                className="accent-indigo-500 h-4 w-4 mt-0.5"
-              />
-              <span className="text-sm text-white/80">Mirror selfie view</span>
-            </label>
-
-            <div>
-              <p className="text-xs text-white/60 mb-2">Quality / performance</p>
-              <div className="flex flex-wrap gap-3">
-                {RESOLUTION_OPTIONS.map(({ value, label }) => (
-                  <label
-                    key={value}
-                    className="flex items-center gap-2 cursor-pointer text-sm text-white/80"
-                  >
-                    <input
-                      type="radio"
-                      name="res"
-                      checked={settings.cameraResolution === value}
-                      onChange={() => save({ cameraResolution: value })}
-                      className="accent-indigo-500"
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <p className="text-xs text-white/60 mb-2">Gesture sensitivity</p>
-              <div className="flex flex-wrap gap-3">
-                {SENSITIVITY_OPTIONS.map(({ value, label }) => (
-                  <label
-                    key={value}
-                    className="flex items-center gap-2 cursor-pointer text-sm text-white/80"
-                  >
-                    <input
-                      type="radio"
-                      name="targetSens"
-                      checked={settings.targetSensitivity === value}
-                      onChange={() => save({ targetSensitivity: value })}
-                      className="accent-indigo-500"
-                    />
-                    {label}
-                  </label>
-                ))}
-              </div>
-              <p className="mt-2 text-xs text-white/40">
-                Easy gives larger answer zones. Precise requires more accurate pointing.
-              </p>
-            </div>
+            <p className="text-sm text-white/70">
+              {showFacingPicker
+                ? `Using ${settings.cameraFacingMode === 'user' ? 'front' : 'back'} camera. Switch during calibration.`
+                : 'Using your webcam.'}
+            </p>
 
             <div className="flex flex-wrap gap-2 pt-1">
               <button type="button" onClick={startCameraTest} className="btn btn-secondary btn-sm">
@@ -248,7 +177,7 @@ export function SettingsPage() {
             {cameraTestActive && (
               <video
                 ref={videoRef}
-                className={`w-full max-w-xs rounded-xl ${settings.mirrorCamera ? 'scale-x-[-1]' : ''}`}
+                className={`w-full max-w-xs rounded-xl ${isMirrored ? 'scale-x-[-1]' : ''}`}
                 autoPlay
                 playsInline
                 muted
@@ -257,9 +186,13 @@ export function SettingsPage() {
           </div>
         </SectionCard>
 
-        {/* Gameplay */}
-        <SectionCard title="Gameplay">
-          <div className="space-y-4">
+        <details className="glass-card group [&_summary::-webkit-details-marker]:hidden">
+          <summary className="cursor-pointer list-none p-4 sm:p-5 font-bold text-white text-base flex items-center justify-between gap-2">
+            <span>Advanced</span>
+            <span className="text-xs font-normal text-white/40 group-open:hidden">QA & troubleshooting</span>
+            <span className="text-xs font-normal text-white/40 hidden group-open:inline">Hide</span>
+          </summary>
+          <div className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-5 border-t border-white/10 pt-4">
             <label className="flex items-start gap-3 cursor-pointer rounded-xl bg-white/5 p-3">
               <input
                 type="checkbox"
@@ -275,49 +208,11 @@ export function SettingsPage() {
               </div>
             </label>
 
-            <label className="flex items-start gap-3 cursor-pointer rounded-xl bg-white/5 p-3">
-              <input
-                type="checkbox"
-                checked={settings.enablePhotoMiniGame}
-                onChange={(e) => save({ enablePhotoMiniGame: e.target.checked })}
-                className="accent-indigo-500 h-4 w-4 mt-0.5"
-              />
-              <div>
-                <span className="text-sm font-semibold text-white">Photo mini-game</span>
-                <p className="text-xs text-white/45 mt-1">
-                  Optional local-only photo moment between questions.
-                </p>
-              </div>
-            </label>
-
-            <label className="flex items-start gap-3 rounded-xl bg-white/5 p-3 opacity-60 cursor-not-allowed">
-              <input
-                type="checkbox"
-                checked={false}
-                disabled
-                readOnly
-                className="accent-indigo-500 h-4 w-4 mt-0.5"
-              />
-              <div>
-                <span className="text-sm font-semibold text-white">Sound effects</span>
-                <p className="text-xs text-white/45 mt-1">Coming later</p>
-              </div>
-            </label>
-          </div>
-        </SectionCard>
-
-        {/* Advanced — collapsed by default */}
-        <details className="glass-card group [&_summary::-webkit-details-marker]:hidden">
-          <summary className="cursor-pointer list-none p-4 sm:p-5 font-bold text-white text-base flex items-center justify-between gap-2">
-            <span>Advanced</span>
-            <span className="text-xs font-normal text-white/40 group-open:hidden">QA & troubleshooting</span>
-            <span className="text-xs font-normal text-white/40 hidden group-open:inline">Hide</span>
-          </summary>
-          <div className="px-4 sm:px-5 pb-4 sm:pb-5 space-y-5 border-t border-white/10 pt-4">
             <div className="space-y-2">
               <p className="text-sm font-semibold text-white">Answer detection</p>
               <SettingHint>
-                How the game decides which answer card you are pointing at.
+                Answer detection uses the visible answer cards by default. Wide zone is for testing
+                only and may trigger accidentally.
               </SettingHint>
               {DETECTION_ZONE_OPTIONS.map(({ value, label, desc }) => (
                 <label
@@ -383,6 +278,32 @@ export function SettingsPage() {
               </button>
               <p className="mt-2 text-xs text-white/40">{poseStatus}</p>
             </div>
+
+            {showFacingPicker && (
+              <div>
+                <p className="text-sm font-semibold text-white mb-2">Camera facing (troubleshooting)</p>
+                <SettingHint>
+                  Prefer the Switch button on the calibration preview. Use this only if switching fails.
+                </SettingHint>
+                <div className="flex flex-wrap gap-3 mt-2">
+                  {(['user', 'environment'] as const).map((mode) => (
+                    <label
+                      key={mode}
+                      className="flex items-center gap-2 cursor-pointer text-sm text-white/80"
+                    >
+                      <input
+                        type="radio"
+                        name="facing-advanced"
+                        checked={settings.cameraFacingMode === mode}
+                        onChange={() => saveFacing(mode)}
+                        className="accent-indigo-500"
+                      />
+                      {mode === 'user' ? 'Front' : 'Back'}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {devices.length > 0 && (
               <div>

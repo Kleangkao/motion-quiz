@@ -86,12 +86,19 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
     }
 
     case 'START_PHOTO_CAPTURE': {
-      if (state.status !== 'feedback') return state;
+      if (state.status !== 'feedback' && state.status !== 'playing') return state;
       return { ...state, status: 'photo-capture' };
     }
 
     case 'END_PHOTO_CAPTURE': {
       if (state.status !== 'photo-capture') return state;
+      const mode = action.payload?.mode ?? 'next';
+      if (mode === 'continue') {
+        return { ...state, status: 'playing', feedback: null };
+      }
+      if (mode === 'finish') {
+        return { ...state, status: 'finished', feedback: null };
+      }
       const nextIndex = state.currentIndex + 1;
       if (nextIndex >= state.questionQueue.length) {
         return { ...state, status: 'finished', feedback: null };

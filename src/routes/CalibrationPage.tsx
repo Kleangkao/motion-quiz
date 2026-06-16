@@ -6,13 +6,20 @@ import { buildCalibrationProfile, DEFAULT_CALIBRATION } from '@/vision/calibrati
 import type { Landmark, CalibrationProfile } from '@/vision/types';
 import { getSettings, updateSettings } from '@/storage/settingsStorage';
 import type { AppSettings } from '@/storage/types';
+import {
+  mirrorForFacing,
+  shouldShowCameraSwitchButton,
+  toggleFacingMode,
+  calibrationForFacing,
+} from '@/camera/cameraSetup';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { mergePlayState } from '@/game/playSessionState';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
 
 const SAMPLE_DURATION_MS = 2000;
+const DONE_AUTO_ADVANCE_MS = 500;
 
-type CalibrationStep = 'choose-camera' | 'camera' | 'sampling' | 'done';
+type CalibrationStep = 'camera' | 'sampling' | 'done';
 
 export function CalibrationPage() {
   const { lessonId } = useParams<{ lessonId: string }>();
@@ -20,10 +27,12 @@ export function CalibrationPage() {
   const location = useLocation();
 
   const [settings, setSettings] = useState<AppSettings | null>(null);
-  const [step, setStep] = useState<CalibrationStep>('choose-camera');
+  const [step, setStep] = useState<CalibrationStep>('camera');
   const [samplingProgress, setSamplingProgress] = useState(0);
   const [calibration, setCalibration] = useState<CalibrationProfile>(DEFAULT_CALIBRATION);
   const [poseStatus, setPoseStatus] = useState<string>('Loading pose model…');
+  const [switchError, setSwitchError] = useState<string | null>(null);
+  const [switching, setSwitching] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const landmarkerRef = useRef(new PoseLandmarkerService());
@@ -31,8 +40,10 @@ export function CalibrationPage() {
   const animFrameRef = useRef<number>(0);
   const samplingStartRef = useRef<number>(0);
 
-  const { cameraState, start, stop } = useCamera({
-    facingMode: settings?.cameraFacingMode ?? 'user',
+  const facingMode = settings?.cameraFacingMode ?? 'user';
+
+  const { cameraState, start, stop, devices } = useCamera({
+    facingMode,
     resolution: settings?.cameraResolution ?? 'balanced',
   });
 
@@ -52,10 +63,8 @@ export function CalibrationPage() {
   }, []);
 
   useEffect(() => {
-    if (settings && step !== 'choose-camera') {
-      start();
-    }
-  }, [settings, step]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (settings) start();
+  }, [settings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (cameraState.status === 'active' && videoRef.current) {
@@ -64,11 +73,51 @@ export function CalibrationPage() {
     }
   }, [cameraState]);
 
-  const chooseCamera = async (facing: 'user' | 'environment') => {
-    const updated = await updateSettings({ cameraFacingMode: facing });
-    setSettings(updated);
-    setStep('camera');
-  };
+  const handleSwitchCamera = useCallback(async () => {
+    if (!settings || switching || step !== 'camera') return;
+
+    const previousFacing = settings.cameraFacingMode;
+    const nextFacing = toggleFacingMode(previousFacing);
+
+    setSwitching(true);
+    setSwitchError(null);
+    stop();
+
+    const switched = await start(undefined, nextFacing);
+    if (!switched) {
+      setSwitchError('Could not switch camera. Using your previous camera.');
+      await start(undefined, previousFacing);
+      setSwitching(false);
+      return;
+    }
+
+    try {
+      const updated = await updateSettings({
+        cameraFacingMode: nextFacing,
+        mirrorCamera: mirrorForFacing(nextFacing),
+      });
+      setSettings(updated);
+    } catch {
+      setSwitchError('Could not save camera preference.');
+      stop();
+      await start(undefined, previousFacing);
+      await updateSettings({
+        cameraFacingMode: previousFacing,
+        mirrorCamera: mirrorForFacing(previousFacing),
+      });
+      setSettings((prev) =>
+        prev
+          ? {
+              ...prev,
+              cameraFacingMode: previousFacing,
+              mirrorCamera: mirrorForFacing(previousFacing),
+            }
+          : prev,
+      );
+    } finally {
+      setSwitching(false);
+    }
+  }, [settings, switching, step, stop, start]);
 
   const startSampling = useCallback(() => {
     landmarkSamplesRef.current = [];
@@ -89,107 +138,86 @@ export function CalibrationPage() {
       } else {
         const profile = buildCalibrationProfile(
           landmarkSamplesRef.current,
-          settings?.mirrorCamera ?? true,
+          mirrorForFacing(facingMode),
         );
         setCalibration(profile);
         setStep('done');
       }
     };
     animFrameRef.current = requestAnimationFrame(collect);
-  }, [settings]);
+  }, [facingMode]);
 
-  const handleSkip = () => {
-    stop();
-    navigate(`/play/${lessonId}/gesture-test`, {
-      state: mergePlayState(location.state, { calibration: DEFAULT_CALIBRATION }),
-    });
-  };
-
-  const handlePlay = () => {
+  const handlePlay = useCallback(() => {
     if (settings) updateSettings({ lastUsedLessonId: lessonId });
     stop();
+    const facing = settings?.cameraFacingMode ?? 'user';
     navigate(`/play/${lessonId}/gesture-test`, {
-      state: mergePlayState(location.state, { calibration }),
+      state: mergePlayState(location.state, {
+        calibration: calibrationForFacing(calibration, facing),
+      }),
     });
-  };
+  }, [settings, lessonId, stop, facingMode, calibration, navigate, location.state]);
 
-  const toggleMirror = async () => {
-    if (!settings) return;
-    const updated = await updateSettings({ mirrorCamera: !settings.mirrorCamera });
-    setSettings(updated);
-  };
+  useEffect(() => {
+    if (step !== 'done') return;
+    const timer = window.setTimeout(() => handlePlay(), DONE_AUTO_ADVANCE_MS);
+    return () => clearTimeout(timer);
+  }, [step, handlePlay]);
 
-  const isMirrored = settings?.mirrorCamera ?? true;
-  const pageTitle = step === 'choose-camera' ? 'Choose camera' : 'Calibration';
+  const isMirrored = mirrorForFacing(facingMode);
+  const showSwitchButton =
+    step === 'camera' &&
+    cameraState.status === 'active' &&
+    shouldShowCameraSwitchButton(devices);
 
   return (
     <div className="relative min-h-screen bg-black overflow-hidden">
-      {step !== 'choose-camera' && (
-        <video
-          ref={videoRef}
-          className={`absolute inset-0 h-full w-full object-cover ${isMirrored ? 'scale-x-[-1]' : ''}`}
-          autoPlay
-          playsInline
-          muted
-        />
-      )}
+      <video
+        ref={videoRef}
+        className={`absolute inset-0 h-full w-full object-cover ${isMirrored ? 'scale-x-[-1]' : ''}`}
+        autoPlay
+        playsInline
+        muted
+      />
 
-      <div className={`absolute inset-0 ${step === 'choose-camera' ? 'bg-gradient-to-b from-slate-950 via-indigo-950 to-slate-950' : 'bg-black/50'}`} />
+      <div className="absolute inset-0 bg-black/50" />
+
+      {showSwitchButton && (
+        <div className="absolute top-[4.5rem] right-4 z-20 safe-top">
+          <button
+            type="button"
+            onClick={handleSwitchCamera}
+            disabled={switching}
+            aria-label="Switch camera"
+            className="btn btn-secondary btn-sm text-xs shadow-lg bg-black/40 backdrop-blur-sm border-white/20"
+          >
+            {switching ? '…' : '🔄 Switch'}
+          </button>
+          {switchError && (
+            <p className="mt-1 max-w-[10rem] text-right text-[10px] text-amber-300/90">
+              {switchError}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-between p-6 safe-top safe-bottom">
         <div className="flex w-full items-center justify-between">
           <button onClick={() => navigate('/play')} className="btn btn-secondary btn-sm">
             ← Back
           </button>
-          <h1 className="text-lg font-bold text-white">{pageTitle}</h1>
-          <button onClick={handleSkip} className="btn btn-secondary btn-sm text-xs">
-            Skip
-          </button>
+          <h1 className="text-lg font-bold text-white">Calibration</h1>
+          <div className="w-[4.5rem]" aria-hidden="true" />
         </div>
 
-        <div className="flex flex-col items-center gap-6 text-center w-full max-w-sm">
-          {step === 'choose-camera' && !settings && <LoadingSpinner label="Loading…" />}
-
-          {step === 'choose-camera' && settings && (
-            <div className="glass-card px-6 py-5 w-full space-y-4">
-              <div className="space-y-1">
-                <p className="font-bold text-white text-lg">Choose camera</p>
-                <p className="text-sm text-white/60">Pick the camera you want to use for this round.</p>
-              </div>
-              <div className="flex flex-col gap-3">
-                <button
-                  type="button"
-                  onClick={() => chooseCamera('user')}
-                  className={`btn btn-lg w-full ${settings.cameraFacingMode === 'user' ? 'btn-primary' : 'btn-secondary'}`}
-                >
-                  Front camera
-                </button>
-                <button
-                  type="button"
-                  onClick={() => chooseCamera('environment')}
-                  className={`btn btn-lg w-full ${settings.cameraFacingMode === 'environment' ? 'btn-primary' : 'btn-secondary'}`}
-                >
-                  Back camera
-                </button>
-              </div>
-              <label className="flex items-center justify-center gap-2 cursor-pointer text-sm text-white/70">
-                <input
-                  type="checkbox"
-                  checked={settings.mirrorCamera}
-                  onChange={() => toggleMirror()}
-                  className="accent-indigo-500 h-4 w-4"
-                />
-                Mirror selfie view
-              </label>
-              <p className="text-xs text-white/40">You can change this later in Settings.</p>
-            </div>
-          )}
-
-          {step !== 'choose-camera' && (
-            <>
+        {!settings ? (
+          <LoadingSpinner label="Loading…" />
+        ) : (
+          <div className="flex flex-1 flex-col w-full max-w-sm">
+            <div className="flex flex-1 flex-col items-center justify-center pointer-events-none">
               <div className="relative">
-                <div className="h-48 w-32 rounded-full border-4 border-dashed border-white/40 flex items-center justify-center">
-                  <span className="text-6xl">🧍</span>
+                <div className="h-40 w-28 rounded-full border-4 border-dashed border-white/30 flex items-center justify-center">
+                  <span className="text-5xl opacity-80">👋</span>
                 </div>
                 {step === 'sampling' && (
                   <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 100 100">
@@ -203,64 +231,52 @@ export function CalibrationPage() {
                   </svg>
                 )}
               </div>
+              {step === 'camera' && cameraState.status === 'active' && (
+                <p className="mt-4 text-sm text-white/70 text-center px-4">
+                  Stand here. Both hands in view.
+                </p>
+              )}
+            </div>
 
-              <div className="glass-card px-6 py-4 w-full">
-                {step === 'camera' && cameraState.status === 'requesting' && (
-                  <LoadingSpinner label="Requesting camera…" />
-                )}
-                {step === 'camera' && cameraState.status === 'error' && (
-                  <ErrorMessage
-                    title="Camera Error"
-                    message={cameraState.error.message}
-                    onRetry={() => start()}
-                  />
-                )}
-                {step === 'camera' && cameraState.status === 'active' && (
-                  <div className="space-y-3 text-left">
-                    <p className="font-bold text-white text-center">Stand in the center of the camera view</p>
-                    <ul className="text-sm text-white/70 space-y-2 list-disc pl-4">
-                      <li>Step back until your head, shoulders, elbows, and hands can fit in the camera.</li>
-                      <li>For laptop testing, sit farther back or use touch-only mode in Settings.</li>
-                      <li>For classroom play, stand about 1.5–2.5 meters from the camera.</li>
-                      <li>Make sure both hands are visible when pointing.</li>
-                    </ul>
-                    <p className="text-xs text-white/50 text-center">{poseStatus}</p>
-                    <button onClick={startSampling} className="btn btn-primary btn-lg w-full">
-                      Start Calibration
-                    </button>
-                  </div>
-                )}
-                {step === 'sampling' && (
-                  <div className="space-y-3">
-                    <p className="font-bold text-white">Hold still…</p>
-                    <p className="text-sm text-white/60">
-                      Detecting your position — {Math.round(samplingProgress * 100)}%
-                    </p>
-                  </div>
-                )}
-                {step === 'done' && (
-                  <div className="space-y-3">
-                    <p className="text-2xl">✅</p>
-                    <p className="font-bold text-white">Calibrated!</p>
-                    <p className="text-xs text-white/50">
-                      Body center: {(calibration.bodyCenterX * 100).toFixed(0)}%
-                      | Shoulder width: {(calibration.shoulderWidthNorm * 100).toFixed(0)}%
-                    </p>
-                    <button onClick={handlePlay} className="btn btn-primary btn-lg w-full">
-                      Continue to Gesture Test
-                    </button>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-
-        {step !== 'choose-camera' && (
-          <div className="flex gap-3">
-            <button onClick={toggleMirror} className="btn btn-secondary btn-sm text-xs">
-              {isMirrored ? '🪞 Mirror: On' : '🪞 Mirror: Off'}
-            </button>
+            <div className="glass-card px-5 py-4 w-full shrink-0">
+              {step === 'camera' && cameraState.status === 'requesting' && (
+                <LoadingSpinner label="Starting camera…" />
+              )}
+              {step === 'camera' && cameraState.status === 'error' && (
+                <ErrorMessage
+                  title="Camera Error"
+                  message={cameraState.error.message}
+                  onRetry={() => start()}
+                />
+              )}
+              {step === 'camera' && cameraState.status === 'active' && (
+                <div className="space-y-3 text-center">
+                  <p className="font-bold text-white text-base">Get in frame</p>
+                  <p className="text-sm text-white/65 leading-snug">
+                    Step back until both hands show on screen. You will point left or right to answer.
+                  </p>
+                  <p className="text-[11px] text-white/40">{poseStatus}</p>
+                  <button onClick={startSampling} className="btn btn-primary btn-lg w-full">
+                    Start
+                  </button>
+                </div>
+              )}
+              {step === 'sampling' && (
+                <div className="space-y-2 text-center">
+                  <p className="font-bold text-white">Hold still</p>
+                  <p className="text-sm text-white/60">
+                    {Math.round(samplingProgress * 100)}%
+                  </p>
+                </div>
+              )}
+              {step === 'done' && (
+                <div className="space-y-2 text-center">
+                  <p className="text-2xl">✅</p>
+                  <p className="font-bold text-white">Ready</p>
+                  <p className="text-sm text-white/60">Starting gesture test…</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
