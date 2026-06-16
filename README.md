@@ -66,6 +66,7 @@ Proofs are stored locally in IndexedDB with the result.
 
 - Camera frames are processed **on-device only** for gesture detection
 - Video is **not uploaded** or stored (unless the optional local photo mini-game is enabled in Settings)
+- **Game Moment** (optional on the result screen) generates a composed result card image in the browser — local preview and save/share only; no upload; v1 does not use the camera
 - No accounts, no analytics backend in MVP
 
 ## PWA / APK / dApp Store path
@@ -96,6 +97,10 @@ npm run lint
 | `islanddao-challenge` | IslandDAO Challenge | Challenge (10 questions) |
 | `seeker_mobile_basics` | Solana Mobile & Seeker Basics | Solo (8 questions) |
 | `starter_places_at_school` | Places at School | Solo (legacy demo) |
+
+## Game Moment (optional)
+
+After a quiz, the **Result** screen offers an optional **Game Moment** — a composed result card (score, accuracy, pack name, date, wallet/proof badge if present). It is generated **locally in the browser** with canvas; you choose when to create, preview, and save/share. Nothing is uploaded automatically. v1 is a stats card only (no camera selfie); snapshot/selfie support may come later.
 
 ---
 

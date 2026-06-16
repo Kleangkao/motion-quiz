@@ -6,6 +6,7 @@ import { PageLayout } from '@/components/layout/PageLayout';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
 import { ScoreProofPanel } from '@/components/result/ScoreProofPanel';
+import { GameMomentPanel } from '@/components/result/GameMomentPanel';
 
 export function ResultPage() {
   const { lessonId, sessionId } = useParams<{ lessonId: string; sessionId: string }>();
@@ -59,6 +60,8 @@ export function ResultPage() {
         </div>
 
         <ScoreProofPanel session={session} onUpdated={setSession} />
+
+        <GameMomentPanel session={session} />
 
         <div className="glass-card p-5">
           <h3 className="font-bold text-white mb-4">Question Breakdown</h3>
