@@ -19,21 +19,16 @@ import {
   SolanaSignMessage,
   type SolanaSignMessageFeature,
 } from '@solana/wallet-standard-features';
+import { isBrowserWalletMode } from './platform';
 import { ensureMwaRegistered } from './registerMwa';
-
-interface PhantomLike {
-  isPhantom?: boolean;
-  publicKey?: { toBase58(): string };
-  connect(): Promise<{ publicKey: { toBase58(): string } }>;
-  signMessage(message: Uint8Array, display?: string): Promise<{ signature: Uint8Array }>;
-  disconnect(): Promise<void>;
-}
-
-function getPhantom(): PhantomLike | null {
-  if (typeof window === 'undefined') return null;
-  const w = window as Window & { solana?: PhantomLike; phantom?: { solana?: PhantomLike } };
-  return w.phantom?.solana ?? w.solana ?? null;
-}
+import {
+  browserWalletLabel,
+  connectBrowserWallet,
+  disconnectBrowserWallet,
+  signMessageWithBrowserWallet,
+  type BrowserWalletId,
+} from './web-wallet-browser';
+import { friendlyWalletError } from './walletErrors';
 
 function pickSolanaWallet(wallets: readonly Wallet[]): Wallet | null {
   return (
@@ -45,9 +40,11 @@ function pickSolanaWallet(wallets: readonly Wallet[]): Wallet | null {
 
 interface WalletContextValue {
   address: string | null;
+  walletLabel: string | null;
+  isBrowserWalletMode: boolean;
   connecting: boolean;
   error: string | null;
-  connect: () => Promise<void>;
+  connect: (browserWallet?: BrowserWalletId) => Promise<void>;
   disconnect: () => Promise<void>;
   signMessage: (message: string) => Promise<Uint8Array>;
 }
@@ -55,93 +52,114 @@ interface WalletContextValue {
 const WalletContext = createContext<WalletContextValue | null>(null);
 
 export function WalletProvider({ children }: { children: ReactNode }) {
+  const browserMode = isBrowserWalletMode();
   const [address, setAddress] = useState<string | null>(null);
+  const [walletLabel, setWalletLabel] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
-  const [usePhantom, setUsePhantom] = useState(false);
+  const [browserWalletId, setBrowserWalletId] = useState<BrowserWalletId | null>(null);
 
   useEffect(() => {
     ensureMwaRegistered();
   }, []);
 
-  const connect = useCallback(async () => {
-    setConnecting(true);
-    setError(null);
-    try {
-      const wallets = getWallets().get();
-      const solWallet = pickSolanaWallet(wallets);
-      if (solWallet) {
+  const connect = useCallback(
+    async (selectedBrowserWallet?: BrowserWalletId) => {
+      setConnecting(true);
+      setError(null);
+      try {
+        if (browserMode) {
+          if (!selectedBrowserWallet) {
+            throw new Error('Choose Phantom or Solflare to connect.');
+          }
+          const pubkey = await connectBrowserWallet(selectedBrowserWallet);
+          setBrowserWalletId(selectedBrowserWallet);
+          setWallet(null);
+          setWalletLabel(browserWalletLabel(selectedBrowserWallet));
+          setAddress(pubkey);
+          return;
+        }
+
+        const wallets = getWallets().get();
+        const solWallet = pickSolanaWallet(wallets);
+        if (!solWallet) {
+          throw new Error(
+            'No Solana Mobile wallet found. Open this app on a Seeker device or supported Android browser.',
+          );
+        }
         const connectFeature = solWallet.features[StandardConnect] as StandardConnectFeature[typeof StandardConnect];
         const result = await connectFeature.connect({ silent: false });
         const account = result.accounts[0] ?? solWallet.accounts[0];
         if (!account) throw new Error('No wallet account returned');
         setWallet(solWallet);
-        setUsePhantom(false);
+        setBrowserWalletId(null);
+        setWalletLabel(solWallet.name);
         setAddress(account.address);
-        return;
+      } catch (e) {
+        setError(friendlyWalletError(e));
+        throw e;
+      } finally {
+        setConnecting(false);
       }
-
-      const phantom = getPhantom();
-      if (phantom) {
-        const res = await phantom.connect();
-        setUsePhantom(true);
-        setWallet(null);
-        setAddress(res.publicKey.toBase58());
-        return;
-      }
-
-      throw new Error('No Solana wallet found. Use a Seeker device or install a browser wallet for testing.');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setConnecting(false);
-    }
-  }, []);
+    },
+    [browserMode],
+  );
 
   const disconnect = useCallback(async () => {
     setError(null);
     try {
-      if (usePhantom) {
-        await getPhantom()?.disconnect();
+      if (browserWalletId) {
+        await disconnectBrowserWallet(browserWalletId);
       } else if (wallet?.features[StandardDisconnect]) {
         const feat = wallet.features[StandardDisconnect] as StandardDisconnectFeature[typeof StandardDisconnect];
         await feat.disconnect();
       }
     } finally {
       setWallet(null);
-      setUsePhantom(false);
+      setBrowserWalletId(null);
+      setWalletLabel(null);
       setAddress(null);
     }
-  }, [wallet, usePhantom]);
+  }, [browserWalletId, wallet]);
 
   const signMessage = useCallback(
     async (message: string): Promise<Uint8Array> => {
       const bytes = new TextEncoder().encode(message);
-      if (usePhantom) {
-        const phantom = getPhantom();
-        if (!phantom) throw new Error('Wallet disconnected');
-        const { signature } = await phantom.signMessage(bytes, 'utf8');
-        return signature;
+      try {
+        if (browserWalletId) {
+          return await signMessageWithBrowserWallet(browserWalletId, bytes);
+        }
+        if (!wallet) throw new Error('Connect a wallet first');
+        const account = wallet.accounts[0];
+        if (!account) throw new Error('No wallet account');
+        const signFeature = wallet.features[SolanaSignMessage] as
+          | SolanaSignMessageFeature[typeof SolanaSignMessage]
+          | undefined;
+        if (!signFeature) throw new Error('Wallet does not support message signing');
+        const outputs = await signFeature.signMessage({ account, message: bytes });
+        const sig = outputs[0]?.signature;
+        if (!sig) throw new Error('Signing failed');
+        return sig;
+      } catch (e) {
+        throw new Error(friendlyWalletError(e), { cause: e });
       }
-      if (!wallet) throw new Error('Connect a wallet first');
-      const account = wallet.accounts[0];
-      if (!account) throw new Error('No wallet account');
-      const signFeature = wallet.features[SolanaSignMessage] as
-        | SolanaSignMessageFeature[typeof SolanaSignMessage]
-        | undefined;
-      if (!signFeature) throw new Error('Wallet does not support message signing');
-      const outputs = await signFeature.signMessage({ account, message: bytes });
-      const sig = outputs[0]?.signature;
-      if (!sig) throw new Error('Signing failed');
-      return sig;
     },
-    [wallet, usePhantom],
+    [browserWalletId, wallet],
   );
 
   const value = useMemo(
-    () => ({ address, connecting, error, connect, disconnect, signMessage }),
-    [address, connecting, error, connect, disconnect, signMessage],
+    () => ({
+      address,
+      walletLabel,
+      isBrowserWalletMode: browserMode,
+      connecting,
+      error,
+      connect,
+      disconnect,
+      signMessage,
+    }),
+    [address, walletLabel, browserMode, connecting, error, connect, disconnect, signMessage],
   );
 
   return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;

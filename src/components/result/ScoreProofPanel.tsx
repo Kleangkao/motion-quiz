@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useWallet, shortenAddress } from '@/solana/WalletProvider';
 import { buildScoreProofMessage, encodeScoreProof } from '@/solana/scoreProof';
 import { updateResultSession } from '@/storage/resultStorage';
+import { BrowserWalletPicker } from '@/components/wallet/BrowserWalletPicker';
+import type { BrowserWalletId } from '@/solana/web-wallet-browser';
 import type { ResultSession } from '@/storage/types';
 
 interface Props {
@@ -10,20 +12,42 @@ interface Props {
 }
 
 export function ScoreProofPanel({ session, onUpdated }: Props) {
-  const { address, connecting, error, connect, disconnect, signMessage } = useWallet();
+  const {
+    address,
+    walletLabel,
+    isBrowserWalletMode,
+    connecting,
+    error,
+    connect,
+    disconnect,
+    signMessage,
+  } = useWallet();
   const [signing, setSigning] = useState(false);
   const [signError, setSignError] = useState<string | null>(null);
 
   const proof = session.scoreProof;
   const linkedAddress = session.walletAddress ?? address;
 
-  const handleConnect = async () => {
-    await connect();
+  const handleBrowserConnect = async (id: BrowserWalletId) => {
+    try {
+      await connect(id);
+    } catch {
+      // error surfaced via wallet context
+    }
+  };
+
+  const handleMwaConnect = async () => {
+    try {
+      await connect();
+    } catch {
+      // error surfaced via wallet context
+    }
   };
 
   const handleSign = async () => {
     if (!address) {
-      await connect();
+      if (isBrowserWalletMode) return;
+      await handleMwaConnect();
       return;
     }
     setSigning(true);
@@ -64,22 +88,45 @@ export function ScoreProofPanel({ session, onUpdated }: Props) {
         </div>
       ) : (
         <div className="space-y-3">
-          {linkedAddress ? (
+          {linkedAddress && walletLabel ? (
+            <p className="text-sm text-white/70">
+              Connected via {walletLabel}:{' '}
+              <span className="font-mono text-indigo-300">{shortenAddress(linkedAddress, 4)}</span>
+            </p>
+          ) : linkedAddress ? (
             <p className="text-sm text-white/70">
               Connected: <span className="font-mono text-indigo-300">{shortenAddress(linkedAddress, 6)}</span>
             </p>
+          ) : isBrowserWalletMode ? (
+            <BrowserWalletPicker
+              onSelect={handleBrowserConnect}
+              connecting={connecting}
+              error={error}
+            />
           ) : (
-            <button onClick={handleConnect} disabled={connecting} className="btn btn-secondary btn-md w-full">
+            <button onClick={handleMwaConnect} disabled={connecting} className="btn btn-secondary btn-md w-full">
               {connecting ? 'Connecting…' : 'Connect Wallet'}
             </button>
           )}
 
+          {isBrowserWalletMode && !address && (
+            <p className="text-xs text-white/45 text-center">
+              Choose Phantom or Solflare before signing.
+            </p>
+          )}
+
           <button
             onClick={handleSign}
-            disabled={signing || connecting}
+            disabled={signing || connecting || (isBrowserWalletMode && !address)}
             className="btn btn-primary btn-lg w-full"
           >
-            {signing ? 'Signing…' : address ? 'Sign Score Proof' : 'Connect & Sign Proof'}
+            {signing
+              ? 'Signing…'
+              : address
+                ? 'Sign Score Proof'
+                : isBrowserWalletMode
+                  ? 'Choose a wallet above'
+                  : 'Connect & Sign Proof'}
           </button>
 
           {address && !proof && (
@@ -91,7 +138,7 @@ export function ScoreProofPanel({ session, onUpdated }: Props) {
       )}
 
       {(error || signError) && (
-        <p className="text-xs text-red-400">{error ?? signError}</p>
+        <p className="text-xs text-red-400">{signError ?? error}</p>
       )}
     </div>
   );

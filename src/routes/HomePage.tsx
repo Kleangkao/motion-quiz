@@ -3,12 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import { getSettings } from '@/storage/settingsStorage';
 import { getLesson } from '@/storage/lessonStorage';
 import { useWallet, shortenAddress } from '@/solana/WalletProvider';
+import { BrowserWalletPicker } from '@/components/wallet/BrowserWalletPicker';
+import type { BrowserWalletId } from '@/solana/web-wallet-browser';
 import type { LessonPack } from '@/storage/types';
 
 export function HomePage() {
   const navigate = useNavigate();
-  const { address, connect, connecting } = useWallet();
+  const {
+    address,
+    walletLabel,
+    isBrowserWalletMode,
+    connect,
+    disconnect,
+    connecting,
+    error,
+  } = useWallet();
   const [lastLesson, setLastLesson] = useState<LessonPack | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -20,6 +31,15 @@ export function HomePage() {
     }
     load();
   }, []);
+
+  const handleBrowserConnect = async (id: BrowserWalletId) => {
+    try {
+      await connect(id);
+      setPickerOpen(false);
+    } catch {
+      // error surfaced via wallet context
+    }
+  };
 
   const modes = [
     { path: '/solo', emoji: '🎯', title: 'Solo Play', desc: 'Built-in quiz packs' },
@@ -68,19 +88,57 @@ export function HomePage() {
         ))}
       </nav>
 
-      <div className="glass-card p-4 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs text-white/40 uppercase tracking-wide">Wallet</p>
-          <p className="text-sm text-white/80">
-            {address ? shortenAddress(address, 6) : 'Not connected — optional for play'}
-          </p>
+      <div className="glass-card p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-xs text-white/40 uppercase tracking-wide">Wallet</p>
+            {address && walletLabel ? (
+              <p className="text-sm text-white/80 mt-1">
+                Connected via {walletLabel}:{' '}
+                <span className="font-mono text-indigo-300">{shortenAddress(address, 4)}</span>
+              </p>
+            ) : (
+              <p className="text-sm text-white/80 mt-1">
+                {isBrowserWalletMode
+                  ? 'Not connected — optional for play (browser wallets)'
+                  : 'Not connected — optional for play (Solana Mobile)'}
+              </p>
+            )}
+          </div>
+          {address ? (
+            <button onClick={() => disconnect()} className="btn btn-secondary btn-sm flex-shrink-0">
+              Disconnect
+            </button>
+          ) : isBrowserWalletMode ? (
+            <button
+              onClick={() => setPickerOpen(true)}
+              disabled={connecting}
+              className="btn btn-secondary btn-sm flex-shrink-0"
+            >
+              {connecting ? '…' : 'Connect'}
+            </button>
+          ) : (
+            <button
+              onClick={() => connect()}
+              disabled={connecting}
+              className="btn btn-secondary btn-sm flex-shrink-0"
+            >
+              {connecting ? '…' : 'Connect'}
+            </button>
+          )}
         </div>
-        {!address && (
-          <button onClick={() => connect()} disabled={connecting} className="btn btn-secondary btn-sm">
-            {connecting ? '…' : 'Connect'}
-          </button>
-        )}
+        {error && !pickerOpen && <p className="text-xs text-red-400">{error}</p>}
       </div>
+
+      {pickerOpen && (
+        <BrowserWalletPicker
+          open
+          onClose={() => setPickerOpen(false)}
+          onSelect={handleBrowserConnect}
+          connecting={connecting}
+          error={error}
+        />
+      )}
 
       <p className="text-xs text-white/30 text-center leading-relaxed">
         Camera processing stays on your device. Video is not uploaded. Wallet signing is off-chain only — no gas, no transfers.
