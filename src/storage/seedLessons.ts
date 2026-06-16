@@ -4,7 +4,7 @@ import { STARTER_LESSONS } from '@/data/starterLessons';
 import {
   ISLANDDAO_CHALLENGE_ID,
   islanddaoChallengeLesson,
-  islandDaoQuestionPrompts,
+  islandDaoBuiltinContentMatches,
 } from '@/data/islanddaoChallengeLesson';
 import { getLesson } from './lessonStorage';
 import { nowIso } from '@/utils/ids';
@@ -17,13 +17,11 @@ export interface StarterLessonMigrationResult {
 }
 
 function islandDaoPromptsMatch(a: Pick<LessonPack, 'questions'>, b: Pick<LessonPack, 'questions'>): boolean {
-  const left = islandDaoQuestionPrompts(a);
-  const right = islandDaoQuestionPrompts(b);
-  return left.length === right.length && left.every((prompt, i) => prompt === right[i]);
+  return islandDaoBuiltinContentMatches(a, b);
 }
 
 /**
- * Refresh the built-in IslandDAO pack in IndexedDB when question content changed.
+ * Refresh the built-in IslandDAO pack in IndexedDB when question or choice image content changed.
  * Only touches the stable built-in ID; preserves createdAt and user-created topics.
  */
 async function syncIslandDaoChallengeBuiltin(): Promise<boolean> {

@@ -116,4 +116,29 @@ describe('ensureStarterLessons', () => {
     expect(result.updatedIds).toEqual([]);
     expect(put).not.toHaveBeenCalled();
   });
+
+  it('syncs IslandDAO when prompts match but choice images changed', async () => {
+    const oldIslandDao = {
+      ...islanddaoChallengeLesson,
+      questions: islanddaoChallengeLesson.questions.map((q) => ({
+        ...q,
+        left: { ...q.left, image: undefined },
+        right: { ...q.right, image: undefined },
+      })),
+    };
+    getLesson.mockImplementation(async (id: string) => {
+      if (id === 'islanddao-challenge') return oldIslandDao;
+      return STARTER_LESSONS.find((lesson) => lesson.id === id);
+    });
+
+    const result = await ensureStarterLessons();
+
+    expect(result.updatedIds).toEqual(['islanddao-challenge']);
+    expect(put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'islanddao-challenge',
+        questions: islanddaoChallengeLesson.questions,
+      }),
+    );
+  });
 });
