@@ -1,16 +1,49 @@
 import { db } from './db';
+import type { LessonPack } from './types';
 import { STARTER_LESSONS } from '@/data/starterLessons';
+import {
+  ISLANDDAO_CHALLENGE_ID,
+  islanddaoChallengeLesson,
+  islandDaoQuestionPrompts,
+} from '@/data/islanddaoChallengeLesson';
 import { getLesson } from './lessonStorage';
+import { nowIso } from '@/utils/ids';
 
 export interface StarterLessonMigrationResult {
   /** Built-in lesson IDs inserted this run (missing before, now added) */
   insertedIds: string[];
+  /** Built-in lesson IDs refreshed from source this run (content revision sync) */
+  updatedIds: string[];
+}
+
+function islandDaoPromptsMatch(a: Pick<LessonPack, 'questions'>, b: Pick<LessonPack, 'questions'>): boolean {
+  const left = islandDaoQuestionPrompts(a);
+  const right = islandDaoQuestionPrompts(b);
+  return left.length === right.length && left.every((prompt, i) => prompt === right[i]);
+}
+
+/**
+ * Refresh the built-in IslandDAO pack in IndexedDB when question content changed.
+ * Only touches the stable built-in ID; preserves createdAt and user-created topics.
+ */
+async function syncIslandDaoChallengeBuiltin(): Promise<boolean> {
+  const existing = await getLesson(ISLANDDAO_CHALLENGE_ID);
+  if (!existing) return false;
+  if (islandDaoPromptsMatch(existing, islanddaoChallengeLesson)) return false;
+
+  await db.lessons.put({
+    ...islanddaoChallengeLesson,
+    createdAt: existing.createdAt,
+    updatedAt: nowIso(),
+  });
+  return true;
 }
 
 /**
  * Ensure every built-in quiz pack exists in IndexedDB.
- * Inserts missing packs by stable ID only — never overwrites existing rows
+ * Inserts missing packs by stable ID only — never overwrites other existing rows
  * (including user-edited packs that share a built-in ID).
+ * IslandDAO Challenge is the exception: synced when built-in question content changes.
  */
 export async function ensureStarterLessons(): Promise<StarterLessonMigrationResult> {
   const insertedIds: string[] = [];
@@ -23,7 +56,12 @@ export async function ensureStarterLessons(): Promise<StarterLessonMigrationResu
     }
   }
 
-  return { insertedIds };
+  const updatedIds: string[] = [];
+  if (await syncIslandDaoChallengeBuiltin()) {
+    updatedIds.push(ISLANDDAO_CHALLENGE_ID);
+  }
+
+  return { insertedIds, updatedIds };
 }
 
 export function isChallengePack(lesson: { packKind?: string }): boolean {

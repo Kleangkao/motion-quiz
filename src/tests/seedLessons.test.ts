@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BUILTIN_LESSON_IDS, STARTER_LESSONS } from '@/data/starterLessons';
+import { islanddaoChallengeLesson } from '@/data/islanddaoChallengeLesson';
 
 const { put, getLesson } = vi.hoisted(() => ({
   put: vi.fn(),
@@ -36,13 +37,14 @@ describe('ensureStarterLessons', () => {
     expect(result.insertedIds).toEqual(
       BUILTIN_LESSON_IDS.filter((id) => id !== 'seeker_mobile_basics'),
     );
+    expect(result.updatedIds).toEqual([]);
     expect(put).toHaveBeenCalledTimes(BUILTIN_LESSON_IDS.length - 1);
     expect(put).not.toHaveBeenCalledWith(
       expect.objectContaining({ id: 'seeker_mobile_basics' }),
     );
   });
 
-  it('does not overwrite existing built-in or user-edited packs', async () => {
+  it('does not overwrite existing built-in or user-edited packs except IslandDAO content sync', async () => {
     const userEdited = {
       ...STARTER_LESSONS[0],
       title: 'My Custom Solana Basics',
@@ -55,6 +57,7 @@ describe('ensureStarterLessons', () => {
     const result = await ensureStarterLessons();
 
     expect(result.insertedIds).not.toContain('solana-basics');
+    expect(result.updatedIds).toEqual([]);
     expect(put).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'solana-basics' }));
   });
 
@@ -67,7 +70,50 @@ describe('ensureStarterLessons', () => {
     const second = await ensureStarterLessons();
 
     expect(first.insertedIds).toEqual([]);
+    expect(first.updatedIds).toEqual([]);
     expect(second.insertedIds).toEqual([]);
+    expect(second.updatedIds).toEqual([]);
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it('syncs IslandDAO Challenge when IndexedDB still has old built-in questions', async () => {
+    const oldIslandDao = {
+      ...islanddaoChallengeLesson,
+      questions: [
+        ...islanddaoChallengeLesson.questions,
+        {
+          ...islanddaoChallengeLesson.questions[0],
+          id: 'islanddao_q_old',
+          prompt: 'Old residency question that should be removed',
+        },
+      ],
+    };
+    getLesson.mockImplementation(async (id: string) => {
+      if (id === 'islanddao-challenge') return oldIslandDao;
+      return STARTER_LESSONS.find((lesson) => lesson.id === id);
+    });
+
+    const result = await ensureStarterLessons();
+
+    expect(result.insertedIds).toEqual([]);
+    expect(result.updatedIds).toEqual(['islanddao-challenge']);
+    expect(put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'islanddao-challenge',
+        questions: islanddaoChallengeLesson.questions,
+        createdAt: oldIslandDao.createdAt,
+      }),
+    );
+  });
+
+  it('does not sync IslandDAO when content already matches canonical pack', async () => {
+    getLesson.mockImplementation(async (id: string) =>
+      STARTER_LESSONS.find((lesson) => lesson.id === id),
+    );
+
+    const result = await ensureStarterLessons();
+
+    expect(result.updatedIds).toEqual([]);
     expect(put).not.toHaveBeenCalled();
   });
 });
