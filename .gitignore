@@ -35,6 +35,10 @@ coverage/
 playwright-report/
 test-results/
 
+# Local QA artifacts (not part of the app)
+qa-screenshots/
+qa-smoke.mjs
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
