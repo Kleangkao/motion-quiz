@@ -21,13 +21,13 @@ function ChoiceImage({ imageRef, alt }: { imageRef: LessonImageRef; alt: string 
   }, [imageRef]);
 
   if (!src) {
-    return <div className="h-28 w-28 rounded-xl bg-black/50 animate-pulse" />;
+    return <div className="play-flow-choice-image h-28 w-28 rounded-xl bg-black/50 animate-pulse" />;
   }
   return (
     <img
       src={src}
       alt={alt}
-      className="h-28 w-28 rounded-xl object-cover shadow-lg pointer-events-none ring-1 ring-white/15"
+      className="play-flow-choice-image h-28 w-28 rounded-xl object-cover shadow-lg pointer-events-none ring-1 ring-white/15"
       draggable={false}
     />
   );
@@ -53,7 +53,7 @@ export const ChoiceCard = forwardRef<HTMLDivElement, Props>(function ChoiceCard(
   const showHold = isCandidate && holdProgress > 0;
 
   const cardClass = `
-    relative flex w-48 min-h-[7.25rem] flex-col items-center justify-center gap-2.5
+    play-flow-choice-card relative flex w-48 min-h-[7.25rem] flex-col items-center justify-center gap-2.5
     rounded-2xl border-2 px-4 py-4 backdrop-blur-md transition-all duration-150
     ${feedbackStyles[feedbackState]}
     ${isCandidate ? 'border-emerald-400/70' : ''}

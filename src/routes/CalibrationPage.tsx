@@ -16,8 +16,9 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { mergePlayState } from '@/game/playSessionState';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
 import { usePlayFlowLandscape } from '@/camera/usePlayFlowLandscape';
-import { PLAY_FLOW_TOP_BAR, PLAY_FLOW_VIEWPORT } from '@/camera/playFlowLayout';
+import { PLAY_FLOW_TOP_BAR, PLAY_FLOW_VIEWPORT, PLAY_FLOW_BAR_BTN } from '@/camera/playFlowLayout';
 import { RotateToLandscapePrompt } from '@/components/game/RotateToLandscapePrompt';
+import { PlayFlowFullscreenButton } from '@/components/game/PlayFlowFullscreenButton';
 
 const SAMPLE_DURATION_MS = 2000;
 const DONE_AUTO_ADVANCE_MS = 500;
@@ -39,6 +40,7 @@ export function CalibrationPage() {
   const [switching, setSwitching] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const landmarkerRef = useRef(new PoseLandmarkerService());
   const landmarkSamplesRef = useRef<Landmark[][]>([]);
   const animFrameRef = useRef<number>(0);
@@ -175,7 +177,7 @@ export function CalibrationPage() {
     shouldShowCameraSwitchButton(devices);
 
   return (
-    <div className={PLAY_FLOW_VIEWPORT}>
+    <div ref={containerRef} className={PLAY_FLOW_VIEWPORT}>
       <video
         ref={videoRef}
         className={`absolute inset-0 h-full w-full object-cover ${isMirrored ? 'scale-x-[-1]' : ''}`}
@@ -207,12 +209,14 @@ export function CalibrationPage() {
 
       <div className={PLAY_FLOW_TOP_BAR}>
         <div className="flex justify-start">
-          <button onClick={() => { stop(); navigate('/play'); }} className="btn btn-secondary btn-sm">
+          <button onClick={() => { stop(); navigate('/play'); }} className={PLAY_FLOW_BAR_BTN}>
             ← Back
           </button>
         </div>
         <h1 className="text-center text-sm font-bold text-white sm:text-base">Calibration</h1>
-        <div className="w-[4.5rem]" aria-hidden="true" />
+        <div className="flex justify-end">
+          <PlayFlowFullscreenButton containerRef={containerRef} variant="bar" />
+        </div>
       </div>
 
       {!settings ? (
@@ -220,7 +224,7 @@ export function CalibrationPage() {
           <LoadingSpinner label="Loading…" />
         </div>
       ) : (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-between px-4 pb-4 pt-14 safe-bottom">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-between pt-14 play-flow-calibration-footer">
           <div className="flex flex-1 flex-col items-center justify-center pointer-events-none min-h-0 w-full max-w-lg">
             <div className="relative shrink-0">
               <div className="flex h-28 w-20 items-center justify-center rounded-full border-4 border-dashed border-white/30 sm:h-36 sm:w-28">
@@ -263,7 +267,7 @@ export function CalibrationPage() {
                     Step back until both hands show on screen. You will point left or right to answer.
                   </p>
                   <p className="text-[11px] text-white/40">{poseStatus}</p>
-                  <button onClick={startSampling} className="btn btn-primary btn-lg w-full">
+                  <button onClick={startSampling} className="btn btn-primary btn-lg w-full min-h-[48px]">
                     Start
                   </button>
                 </div>

@@ -23,8 +23,10 @@ import {
   PLAY_FLOW_PROMPT_BAND,
   PLAY_FLOW_TOP_BAR,
   PLAY_FLOW_VIEWPORT,
+  PLAY_FLOW_BAR_BTN,
 } from '@/camera/playFlowLayout';
 import { RotateToLandscapePrompt } from '@/components/game/RotateToLandscapePrompt';
+import { PlayFlowFullscreenButton } from '@/components/game/PlayFlowFullscreenButton';
 import { HoldProgressBar } from '@/components/game/HoldProgressBar';
 
 type TestStep = 'point-left' | 'left-done' | 'point-right' | 'right-done';
@@ -54,7 +56,7 @@ function TestChoiceCard({
       {showHold && <HoldProgressBar progress={holdProgress} />}
       <div
         ref={innerRef}
-        className={`relative flex w-40 min-h-[6.5rem] flex-col items-center justify-center gap-2 rounded-2xl border-2 px-3 py-3 backdrop-blur-md transition-all duration-150 sm:w-48 sm:min-h-[7.25rem] sm:px-4 sm:py-4 ${
+        className={`play-flow-choice-card relative flex w-40 min-h-[6.5rem] flex-col items-center justify-center gap-2 rounded-2xl border-2 px-3 py-3 backdrop-blur-md transition-all duration-150 sm:w-48 sm:min-h-[7.25rem] sm:px-4 sm:py-4 ${
           isCandidate
             ? 'border-emerald-400/70 bg-slate-950/88 shadow-[0_12px_40px_rgba(0,0,0,0.55)]'
             : active
@@ -244,14 +246,14 @@ export function GestureTestPage() {
         <div className="flex justify-start">
           <button
             onClick={() => { stop(); navigate(`/play/${lessonId}/calibrate`); }}
-            className="btn btn-secondary btn-sm"
+            className={PLAY_FLOW_BAR_BTN}
           >
             ← Back
           </button>
         </div>
         <h1 className="text-center text-sm font-bold text-white sm:text-base">Gesture Test</h1>
         <div className="flex justify-end">
-          <button onClick={() => setDebugMode((d) => !d)} className="btn btn-secondary btn-sm text-xs">
+          <button onClick={() => setDebugMode((d) => !d)} className={`${PLAY_FLOW_BAR_BTN} text-xs`}>
             {debugMode ? 'Debug Off' : 'Debug'}
           </button>
         </div>
@@ -335,6 +337,8 @@ export function GestureTestPage() {
       )}
 
       {showRotatePrompt && <RotateToLandscapePrompt />}
+
+      <PlayFlowFullscreenButton containerRef={containerRef} />
 
       {debugMode && (
         <DebugOverlay

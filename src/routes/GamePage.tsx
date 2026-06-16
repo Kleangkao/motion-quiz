@@ -43,8 +43,10 @@ import {
   PLAY_FLOW_PROMPT_BAND,
   PLAY_FLOW_TOP_BAR,
   PLAY_FLOW_VIEWPORT,
+  PLAY_FLOW_BAR_BTN,
 } from '@/camera/playFlowLayout';
 import { RotateToLandscapePrompt } from '@/components/game/RotateToLandscapePrompt';
+import { PlayFlowFullscreenButton } from '@/components/game/PlayFlowFullscreenButton';
 
 const FEEDBACK_DURATION_MS = 550;
 const CORRECT_ANSWER_PAUSE_MS = 2000;
@@ -429,7 +431,7 @@ export function GamePage() {
         <div className="flex justify-start">
           <button
             onClick={() => { dispatch({ type: 'END' }); stop(); navigate('/play'); }}
-            className="btn btn-secondary btn-sm text-sm"
+            className={`${PLAY_FLOW_BAR_BTN} text-sm`}
           >
             ✕
           </button>
@@ -439,7 +441,7 @@ export function GamePage() {
         </div>
         <div className="flex items-center justify-end gap-2">
           {gameState.status === 'playing' && (
-            <button onClick={() => dispatch({ type: 'PAUSE' })} className="btn btn-secondary btn-sm">
+            <button onClick={() => dispatch({ type: 'PAUSE' })} className={PLAY_FLOW_BAR_BTN}>
               ⏸
             </button>
           )}
@@ -574,6 +576,8 @@ export function GamePage() {
       {showRotatePrompt && gameState.status !== 'finished' && gameState.status !== 'photo-capture' && (
         <RotateToLandscapePrompt />
       )}
+
+      <PlayFlowFullscreenButton containerRef={containerRef} />
 
       {gameState.status === 'finished' && (
         <ResultModal
