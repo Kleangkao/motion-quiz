@@ -102,7 +102,7 @@ export async function shareImage(
   try {
     await navigator.share({
       files: [file],
-      title: 'Seeker Motion Quiz Result',
+      title: 'Motion Quiz Result',
       text: 'My quiz result (saved locally)',
     });
     return { method: 'share' };

@@ -1,6 +1,6 @@
 /** App identity for Mobile Wallet Adapter */
 export const SOLANA_APP_IDENTITY = {
-  name: 'Seeker Motion Quiz',
+  name: 'Motion Quiz',
   uri: typeof window !== 'undefined' ? window.location.origin : 'https://seeker-motion-quiz.app',
   icon: '/icon.svg',
 } as const;

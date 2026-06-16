@@ -1,4 +1,4 @@
-# Seeker Motion Quiz
+# Motion Quiz
 
 A **mobile-first, camera-based gesture quiz** for the Solana Mobile / Seeker ecosystem. Players answer by pointing **left or right** — no tapping required. Built as a PWA for workshops, community events, and mobile learning sessions.
 
@@ -48,13 +48,13 @@ Legacy `/play` and `/teacher` redirect to the new routes.
 
 MWA is registered on client mount via `@solana-mobile/wallet-standard-mobile` with app identity:
 
-- **Name:** Seeker Motion Quiz
+- **Name:** Motion Quiz
 - **URI:** current origin (or production URL when deployed)
 - **Icon:** `/icon.svg`
 
 Wallet connection is **optional** for gameplay. After finishing, players can sign a clear message:
 
-> I played Seeker Motion Quiz. Challenge: … Score: … Accuracy: … Timestamp: … This signature does not move funds.
+> I played Motion Quiz. Challenge: … Score: … Accuracy: … Timestamp: … This signature does not move funds.
 
 Proofs are stored locally in IndexedDB with the result.
 
@@ -106,4 +106,4 @@ After a quiz, the **Result** screen offers an optional **Game Moment** — a com
 
 ---
 
-**Seeker Motion Quiz** — gesture quiz for Solana Mobile workshops. Play with your camera, prove your score with your wallet, keep everything local.
+**Motion Quiz** — gesture quiz for Solana Mobile workshops. Play with your camera, prove your score with your wallet, keep everything local.

@@ -5,7 +5,7 @@ export function buildScoreProofMessage(session: ResultSession): string {
   const challengeName = session.challengeName ?? session.lessonTitle;
   const total = session.totalAnswered + session.skippedCount;
   return [
-    'I played Seeker Motion Quiz.',
+    'I played Motion Quiz.',
     `Challenge: ${challengeName}.`,
     `Score: ${session.score}/${Math.max(total, session.questionResults.length)}.`,
     `Accuracy: ${session.accuracy.toFixed(0)}%.`,

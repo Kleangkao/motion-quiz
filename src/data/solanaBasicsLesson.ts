@@ -7,7 +7,7 @@ export const solanaBasicsLesson: LessonPack = {
   ...basePack(
     'solana-basics',
     'Solana Basics',
-    'A beginner-friendly Solana and wallet safety quiz for Seeker Motion Quiz.',
+    'A beginner-friendly Solana and wallet safety quiz for Motion Quiz.',
     'solo',
     12,
   ),

@@ -47,12 +47,8 @@ export function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-indigo-950 to-purple-950 flex flex-col p-5 pb-8 gap-5 max-w-lg mx-auto">
       <header className="pt-4 flex items-start justify-between gap-3">
-        <div className="space-y-1 min-w-0">
-          <div className="text-4xl">📱</div>
-          <h1 className="text-3xl font-black text-white tracking-tight">Seeker Motion Quiz</h1>
-          <p className="text-white/60 text-sm">
-            Point left or right with your camera. Built for Solana Mobile workshops and community events.
-          </p>
+        <div className="min-w-0">
+          <h1 className="text-3xl font-black text-white tracking-tight">Motion Quiz</h1>
         </div>
         <div className="relative flex-shrink-0 pt-1">
           <WalletHeaderButton />

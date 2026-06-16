@@ -24,11 +24,11 @@ export function ResultsHistoryPage() {
   useEffect(() => { load(); }, []);
 
   const handleExportCsv = () => {
-    downloadCsv(resultsToCsv(sessions), 'seeker-motion-quiz-results.csv');
+    downloadCsv(resultsToCsv(sessions), 'motion-quiz-results.csv');
   };
 
   const handleExportJson = () => {
-    downloadJson({ exportedAt: new Date().toISOString(), results: sessions }, 'seeker-motion-quiz-results.json');
+    downloadJson({ exportedAt: new Date().toISOString(), results: sessions }, 'motion-quiz-results.json');
   };
 
   const handleClear = async () => {

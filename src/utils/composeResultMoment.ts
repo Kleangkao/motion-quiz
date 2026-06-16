@@ -258,7 +258,7 @@ function drawBrandHeader(
   ctx.textAlign = 'left';
   ctx.font = 'bold 30px Nunito, system-ui, sans-serif';
   ctx.fillStyle = '#ffffff';
-  ctx.fillText('Seeker Motion Quiz', innerX, y);
+  ctx.fillText('Motion Quiz', innerX, y);
 
   ctx.font = '600 20px Nunito, system-ui, sans-serif';
   const badge = modeLabel.toUpperCase();
