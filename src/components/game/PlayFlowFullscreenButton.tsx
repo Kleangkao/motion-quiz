@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import { usePlayFlowFullscreen } from '@/camera/usePlayFlowFullscreen';
+import { usePlayFlowFullscreen, isIOSWebKit } from '@/camera/usePlayFlowFullscreen';
 import { PLAY_FLOW_BAR_BTN, PLAY_FLOW_FULLSCREEN_BTN } from '@/camera/playFlowLayout';
 
 interface Props {
@@ -14,6 +14,8 @@ export function PlayFlowFullscreenButton({ containerRef, variant = 'corner' }: P
 
   if (!visible) return null;
 
+  const isIOS = isIOSWebKit();
+
   const label = isFullscreen
     ? mode === 'native'
       ? 'Exit FS'
@@ -26,7 +28,9 @@ export function PlayFlowFullscreenButton({ containerRef, variant = 'corner' }: P
     ? 'Exit expanded view'
     : nativeAvailable
       ? 'Hide browser bars (full screen)'
-      : 'Expand view to use more of the screen';
+      : isIOS
+        ? 'Use more screen (Safari keeps the top URL bar on iPhone)'
+        : 'Expand view to use more of the screen';
 
   const className = variant === 'bar' ? PLAY_FLOW_BAR_BTN : PLAY_FLOW_FULLSCREEN_BTN;
 
