@@ -35,6 +35,16 @@ import {
   type PhotoResumeMode,
 } from '@/game/sessionPhotoSchedule';
 import { calibrationForFacing } from '@/camera/cameraSetup';
+import { usePlayFlowLandscape } from '@/camera/usePlayFlowLandscape';
+import {
+  PLAY_FLOW_CARD_LEFT,
+  PLAY_FLOW_CARD_RIGHT,
+  PLAY_FLOW_GESTURE_STATUS,
+  PLAY_FLOW_PROMPT_BAND,
+  PLAY_FLOW_TOP_BAR,
+  PLAY_FLOW_VIEWPORT,
+} from '@/camera/playFlowLayout';
+import { RotateToLandscapePrompt } from '@/components/game/RotateToLandscapePrompt';
 
 const FEEDBACK_DURATION_MS = 550;
 const CORRECT_ANSWER_PAUSE_MS = 2000;
@@ -43,6 +53,7 @@ export function GamePage() {
   const { lessonId } = useParams<{ lessonId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
+  const { showRotatePrompt } = usePlayFlowLandscape();
 
   const calibration: CalibrationProfile =
     location.state?.calibration ?? DEFAULT_CALIBRATION;
@@ -385,7 +396,7 @@ export function GamePage() {
   const videoH = videoRef.current?.videoHeight ?? 0;
 
   return (
-    <div ref={containerRef} className="relative h-screen w-screen overflow-hidden bg-black select-none">
+    <div ref={containerRef} className={PLAY_FLOW_VIEWPORT}>
       <video
         ref={videoRef}
         className={`absolute inset-0 h-full w-full object-cover ${isMirrored ? 'scale-x-[-1]' : ''}`}
@@ -414,7 +425,7 @@ export function GamePage() {
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/50 pointer-events-none" />
 
       {/* Top bar — 3-column grid keeps timer visually centered */}
-      <div className="absolute top-0 left-0 right-0 safe-top grid grid-cols-3 items-center px-4 py-3 z-10">
+      <div className={PLAY_FLOW_TOP_BAR}>
         <div className="flex justify-start">
           <button
             onClick={() => { dispatch({ type: 'END' }); stop(); navigate('/play'); }}
@@ -451,9 +462,9 @@ export function GamePage() {
       )}
 
       {activeQ && gameState.status !== 'finished' && !isPhotoCapture && (
-        <div className="absolute top-1/4 left-0 right-0 flex flex-col items-center z-10 pointer-events-none">
-          <div className="rounded-2xl bg-black/60 px-6 py-3 backdrop-blur">
-            <p className="text-3xl font-black text-white text-center drop-shadow-lg">
+        <div className={PLAY_FLOW_PROMPT_BAND}>
+          <div className="rounded-2xl bg-black/60 px-4 py-2 sm:px-6 sm:py-3 backdrop-blur max-w-3xl">
+            <p className="text-lg font-black text-white text-center drop-shadow-lg sm:text-2xl line-clamp-3">
               {activeQ.prompt}
             </p>
           </div>
@@ -462,7 +473,7 @@ export function GamePage() {
 
       {activeQ && gameState.status !== 'finished' && gameState.status !== 'paused' && !isPhotoCapture && (
         <div className="absolute inset-0 z-10 pointer-events-none">
-          <div className="absolute left-[12%] top-[53%] -translate-x-1/2 -translate-y-1/2 max-w-[38vw]">
+          <div className={PLAY_FLOW_CARD_LEFT}>
             <ChoiceCard
               ref={leftChoiceRef}
               choice={activeQ.left}
@@ -480,7 +491,7 @@ export function GamePage() {
               onTouch={() => touchAllowed && submitAnswer('left', 'touch')}
             />
           </div>
-          <div className="absolute left-[88%] top-[53%] -translate-x-1/2 -translate-y-1/2 max-w-[38vw]">
+          <div className={PLAY_FLOW_CARD_RIGHT}>
             <ChoiceCard
               ref={rightChoiceRef}
               choice={activeQ.right}
@@ -502,7 +513,7 @@ export function GamePage() {
       )}
 
       {isPlaying && (
-        <div className="absolute bottom-10 left-0 right-0 flex justify-center z-10 pointer-events-none">
+        <div className={PLAY_FLOW_GESTURE_STATUS}>
           <GestureStatus
             gestureOutput={gestureOutput}
             diagnostics={diagnostics}
@@ -559,6 +570,10 @@ export function GamePage() {
       >
         {debugMode ? 'Debug Off' : 'Debug'}
       </button>
+
+      {showRotatePrompt && gameState.status !== 'finished' && gameState.status !== 'photo-capture' && (
+        <RotateToLandscapePrompt />
+      )}
 
       {gameState.status === 'finished' && (
         <ResultModal

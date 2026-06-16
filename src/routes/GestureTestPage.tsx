@@ -15,14 +15,22 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
 import { isGestureInputAllowed } from '@/game/inputMode';
 import { calibrationForFacing } from '@/camera/cameraSetup';
+import { usePlayFlowLandscape } from '@/camera/usePlayFlowLandscape';
+import {
+  PLAY_FLOW_CARD_LEFT,
+  PLAY_FLOW_CARD_RIGHT,
+  PLAY_FLOW_GESTURE_STATUS,
+  PLAY_FLOW_PROMPT_BAND,
+  PLAY_FLOW_TOP_BAR,
+  PLAY_FLOW_VIEWPORT,
+} from '@/camera/playFlowLayout';
+import { RotateToLandscapePrompt } from '@/components/game/RotateToLandscapePrompt';
+import { HoldProgressBar } from '@/components/game/HoldProgressBar';
 
 type TestStep = 'point-left' | 'left-done' | 'point-right' | 'right-done';
 
 const AUTO_ADVANCE_MS = 700;
 
-import { HoldProgressBar } from '@/components/game/HoldProgressBar';
-
-/** Placeholder cards matching game layout for zone measurement */
 function TestChoiceCard({
   side,
   label,
@@ -46,7 +54,7 @@ function TestChoiceCard({
       {showHold && <HoldProgressBar progress={holdProgress} />}
       <div
         ref={innerRef}
-        className={`relative flex w-48 min-h-[7.25rem] flex-col items-center justify-center gap-2 rounded-2xl border-2 px-4 py-4 backdrop-blur-md transition-all duration-150 ${
+        className={`relative flex w-40 min-h-[6.5rem] flex-col items-center justify-center gap-2 rounded-2xl border-2 px-3 py-3 backdrop-blur-md transition-all duration-150 sm:w-48 sm:min-h-[7.25rem] sm:px-4 sm:py-4 ${
           isCandidate
             ? 'border-emerald-400/70 bg-slate-950/88 shadow-[0_12px_40px_rgba(0,0,0,0.55)]'
             : active
@@ -57,8 +65,8 @@ function TestChoiceCard({
         <span className="absolute top-2 left-2 rounded-md bg-black/45 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/55">
           {sideLabel}
         </span>
-        <span className="text-3xl">{side === 'left' ? '👈' : '👉'}</span>
-        <span className="text-sm font-semibold text-white">{label}</span>
+        <span className="text-2xl sm:text-3xl">{side === 'left' ? '👈' : '👉'}</span>
+        <span className="text-xs font-semibold text-white sm:text-sm">{label}</span>
       </div>
     </div>
   );
@@ -68,6 +76,7 @@ export function GestureTestPage() {
   const { lessonId } = useParams<{ lessonId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
+  const { showRotatePrompt } = usePlayFlowLandscape();
 
   const calibration: CalibrationProfile =
     location.state?.calibration ?? DEFAULT_CALIBRATION;
@@ -217,33 +226,54 @@ export function GestureTestPage() {
     }
   };
 
+  const showCards =
+    step === 'point-left' || step === 'point-right' || step === 'left-done' || step === 'right-done';
+
   return (
-    <div ref={containerRef} className="relative min-h-screen bg-black overflow-hidden">
+    <div ref={containerRef} className={PLAY_FLOW_VIEWPORT}>
       <video
         ref={videoRef}
         className={`absolute inset-0 h-full w-full object-cover ${isMirrored ? 'scale-x-[-1]' : ''}`}
-        autoPlay playsInline muted
+        autoPlay
+        playsInline
+        muted
       />
-      <div className="absolute inset-0 bg-black/40" />
+      <div className="absolute inset-0 bg-black/40 pointer-events-none" />
 
-      <div className="relative z-10 flex min-h-screen flex-col p-6 safe-top safe-bottom">
-        <div className="flex w-full items-center justify-between mb-4">
-          <button onClick={() => { stop(); navigate(`/play/${lessonId}/calibrate`); }} className="btn btn-secondary btn-sm">
+      <div className={PLAY_FLOW_TOP_BAR}>
+        <div className="flex justify-start">
+          <button
+            onClick={() => { stop(); navigate(`/play/${lessonId}/calibrate`); }}
+            className="btn btn-secondary btn-sm"
+          >
             ← Back
           </button>
-          <h1 className="text-lg font-bold text-white">Gesture Test</h1>
-          <div className="w-[4.5rem]" aria-hidden="true" />
         </div>
+        <h1 className="text-center text-sm font-bold text-white sm:text-base">Gesture Test</h1>
+        <div className="flex justify-end">
+          <button onClick={() => setDebugMode((d) => !d)} className="btn btn-secondary btn-sm text-xs">
+            {debugMode ? 'Debug Off' : 'Debug'}
+          </button>
+        </div>
+      </div>
 
-        <div className="flex-1 flex flex-col items-center justify-center gap-4">
-          {cameraState.status === 'requesting' && <LoadingSpinner label="Starting camera…" />}
-          {cameraState.status === 'error' && (
-            <ErrorMessage title="Camera Error" message={cameraState.error.message} onRetry={() => start()} />
-          )}
+      {cameraState.status === 'requesting' && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center">
+          <LoadingSpinner label="Starting camera…" />
+        </div>
+      )}
 
-          {cameraState.status === 'active' && (
-            <div className="glass-card max-w-md px-5 py-3 text-center space-y-2 mb-auto mt-auto">
-              <p className="font-bold text-white text-sm">{instruction()}</p>
+      {cameraState.status === 'error' && (
+        <div className="absolute inset-0 z-30 flex items-center justify-center px-6">
+          <ErrorMessage title="Camera Error" message={cameraState.error.message} onRetry={() => start()} />
+        </div>
+      )}
+
+      {cameraState.status === 'active' && (
+        <>
+          <div className={PLAY_FLOW_PROMPT_BAND}>
+            <div className="rounded-2xl bg-black/60 px-4 py-2 backdrop-blur max-w-2xl w-full text-center space-y-1">
+              <p className="font-bold text-white text-base sm:text-lg">{instruction()}</p>
               <div className="flex justify-center gap-4 text-xs">
                 <span className={leftConfirmed ? 'text-green-400' : 'text-white/40'}>
                   {leftConfirmed ? '✅ Left' : '⬜ Left'}
@@ -253,53 +283,58 @@ export function GestureTestPage() {
                 </span>
               </div>
               {!gestureAllowed && (
-                <p className="text-xs text-amber-300/90">
-                  Turn off Touch-only mode in Settings.
-                </p>
+                <p className="text-xs text-amber-300/90">Turn off Touch-only mode in Settings.</p>
               )}
-              {(step === 'point-left' || step === 'point-right') && (
-                <GestureStatus
-                  gestureOutput={gestureOutput}
-                  diagnostics={diagnostics}
-                  gestureInputEnabled={gestureAllowed}
-                  touchFallbackActive={false}
-                />
-              )}
-            </div>
-          )}
-        </div>
-
-        {(step === 'point-left' || step === 'point-right' || step === 'left-done' || step === 'right-done') && (
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute left-[12%] top-[53%] -translate-x-1/2 -translate-y-1/2">
-              <TestChoiceCard
-                innerRef={leftRef}
-                side="left"
-                label="LEFT"
-                active={step === 'point-left'}
-                isCandidate={step === 'point-left' && gestureOutput.candidateSide === 'left'}
-                holdProgress={step === 'point-left' && gestureOutput.candidateSide === 'left' ? gestureOutput.holdProgress : 0}
-              />
-            </div>
-            <div className="absolute left-[88%] top-[53%] -translate-x-1/2 -translate-y-1/2">
-              <TestChoiceCard
-                innerRef={rightRef}
-                side="right"
-                label="RIGHT"
-                active={step === 'point-right'}
-                isCandidate={step === 'point-right' && gestureOutput.candidateSide === 'right'}
-                holdProgress={step === 'point-right' && gestureOutput.candidateSide === 'right' ? gestureOutput.holdProgress : 0}
-              />
             </div>
           </div>
-        )}
 
-        <div className="flex justify-center gap-3 mt-2">
-          <button onClick={() => setDebugMode((d) => !d)} className="btn btn-secondary btn-sm text-xs">
-            {debugMode ? 'Debug Off' : 'Debug'}
-          </button>
+          {(step === 'point-left' || step === 'point-right') && (
+            <div className={PLAY_FLOW_GESTURE_STATUS}>
+              <GestureStatus
+                gestureOutput={gestureOutput}
+                diagnostics={diagnostics}
+                gestureInputEnabled={gestureAllowed}
+                touchFallbackActive={false}
+              />
+            </div>
+          )}
+        </>
+      )}
+
+      {showCards && (
+        <div className="absolute inset-0 z-10 pointer-events-none">
+          <div className={PLAY_FLOW_CARD_LEFT}>
+            <TestChoiceCard
+              innerRef={leftRef}
+              side="left"
+              label="LEFT"
+              active={step === 'point-left'}
+              isCandidate={step === 'point-left' && gestureOutput.candidateSide === 'left'}
+              holdProgress={
+                step === 'point-left' && gestureOutput.candidateSide === 'left'
+                  ? gestureOutput.holdProgress
+                  : 0
+              }
+            />
+          </div>
+          <div className={PLAY_FLOW_CARD_RIGHT}>
+            <TestChoiceCard
+              innerRef={rightRef}
+              side="right"
+              label="RIGHT"
+              active={step === 'point-right'}
+              isCandidate={step === 'point-right' && gestureOutput.candidateSide === 'right'}
+              holdProgress={
+                step === 'point-right' && gestureOutput.candidateSide === 'right'
+                  ? gestureOutput.holdProgress
+                  : 0
+              }
+            />
+          </div>
         </div>
-      </div>
+      )}
+
+      {showRotatePrompt && <RotateToLandscapePrompt />}
 
       {debugMode && (
         <DebugOverlay

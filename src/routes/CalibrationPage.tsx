@@ -15,6 +15,9 @@ import {
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { mergePlayState } from '@/game/playSessionState';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
+import { usePlayFlowLandscape } from '@/camera/usePlayFlowLandscape';
+import { PLAY_FLOW_TOP_BAR, PLAY_FLOW_VIEWPORT } from '@/camera/playFlowLayout';
+import { RotateToLandscapePrompt } from '@/components/game/RotateToLandscapePrompt';
 
 const SAMPLE_DURATION_MS = 2000;
 const DONE_AUTO_ADVANCE_MS = 500;
@@ -25,6 +28,7 @@ export function CalibrationPage() {
   const { lessonId } = useParams<{ lessonId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { showRotatePrompt } = usePlayFlowLandscape();
 
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [step, setStep] = useState<CalibrationStep>('camera');
@@ -171,7 +175,7 @@ export function CalibrationPage() {
     shouldShowCameraSwitchButton(devices);
 
   return (
-    <div className="relative min-h-screen bg-black overflow-hidden">
+    <div className={PLAY_FLOW_VIEWPORT}>
       <video
         ref={videoRef}
         className={`absolute inset-0 h-full w-full object-cover ${isMirrored ? 'scale-x-[-1]' : ''}`}
@@ -180,10 +184,10 @@ export function CalibrationPage() {
         muted
       />
 
-      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0 bg-black/50 pointer-events-none" />
 
       {showSwitchButton && (
-        <div className="absolute top-[4.5rem] right-4 z-20 safe-top">
+        <div className="absolute top-12 right-3 z-20 safe-top sm:right-4">
           <button
             type="button"
             onClick={handleSwitchCamera}
@@ -201,44 +205,47 @@ export function CalibrationPage() {
         </div>
       )}
 
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-between p-6 safe-top safe-bottom">
-        <div className="flex w-full items-center justify-between">
-          <button onClick={() => navigate('/play')} className="btn btn-secondary btn-sm">
+      <div className={PLAY_FLOW_TOP_BAR}>
+        <div className="flex justify-start">
+          <button onClick={() => { stop(); navigate('/play'); }} className="btn btn-secondary btn-sm">
             ← Back
           </button>
-          <h1 className="text-lg font-bold text-white">Calibration</h1>
-          <div className="w-[4.5rem]" aria-hidden="true" />
         </div>
+        <h1 className="text-center text-sm font-bold text-white sm:text-base">Calibration</h1>
+        <div className="w-[4.5rem]" aria-hidden="true" />
+      </div>
 
-        {!settings ? (
+      {!settings ? (
+        <div className="absolute inset-0 z-10 flex items-center justify-center">
           <LoadingSpinner label="Loading…" />
-        ) : (
-          <div className="flex flex-1 flex-col w-full max-w-sm">
-            <div className="flex flex-1 flex-col items-center justify-center pointer-events-none">
-              <div className="relative">
-                <div className="h-40 w-28 rounded-full border-4 border-dashed border-white/30 flex items-center justify-center">
-                  <span className="text-5xl opacity-80">👋</span>
-                </div>
-                {step === 'sampling' && (
-                  <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="4" />
-                    <circle
-                      cx="50" cy="50" r="46" fill="none" stroke="#818cf8" strokeWidth="4"
-                      strokeDasharray={`${2 * Math.PI * 46}`}
-                      strokeDashoffset={`${2 * Math.PI * 46 * (1 - samplingProgress)}`}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                )}
+        </div>
+      ) : (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-between px-4 pb-4 pt-14 safe-bottom">
+          <div className="flex flex-1 flex-col items-center justify-center pointer-events-none min-h-0 w-full max-w-lg">
+            <div className="relative shrink-0">
+              <div className="flex h-28 w-20 items-center justify-center rounded-full border-4 border-dashed border-white/30 sm:h-36 sm:w-28">
+                <span className="text-4xl opacity-80 sm:text-5xl">👋</span>
               </div>
-              {step === 'camera' && cameraState.status === 'active' && (
-                <p className="mt-4 text-sm text-white/70 text-center px-4">
-                  Stand here. Both hands in view.
-                </p>
+              {step === 'sampling' && (
+                <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="4" />
+                  <circle
+                    cx="50" cy="50" r="46" fill="none" stroke="#818cf8" strokeWidth="4"
+                    strokeDasharray={`${2 * Math.PI * 46}`}
+                    strokeDashoffset={`${2 * Math.PI * 46 * (1 - samplingProgress)}`}
+                    strokeLinecap="round"
+                  />
+                </svg>
               )}
             </div>
+            {step === 'camera' && cameraState.status === 'active' && (
+              <p className="mt-3 text-sm text-white/70 text-center px-4">
+                Stand here. Both hands in view.
+              </p>
+            )}
+          </div>
 
-            <div className="glass-card px-5 py-4 w-full shrink-0">
+          <div className="glass-card w-full max-w-lg shrink-0 px-5 py-4">
               {step === 'camera' && cameraState.status === 'requesting' && (
                 <LoadingSpinner label="Starting camera…" />
               )}
@@ -279,7 +286,7 @@ export function CalibrationPage() {
             </div>
           </div>
         )}
-      </div>
+      {showRotatePrompt && <RotateToLandscapePrompt />}
     </div>
   );
 }
