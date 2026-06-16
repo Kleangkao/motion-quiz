@@ -17,6 +17,8 @@ import { isGestureInputAllowed } from '@/game/inputMode';
 
 type TestStep = 'intro' | 'point-left' | 'left-done' | 'point-right' | 'right-done';
 
+const AUTO_ADVANCE_MS = 1000;
+
 /** Placeholder cards matching game layout for zone measurement */
 function TestChoiceCard({
   side,
@@ -191,6 +193,18 @@ export function GestureTestPage() {
     });
   }, [settings, lessonId, calibration, navigate, stop, location.state]);
 
+  useEffect(() => {
+    if (step !== 'left-done') return;
+    const timer = window.setTimeout(() => setStep('point-right'), AUTO_ADVANCE_MS);
+    return () => clearTimeout(timer);
+  }, [step]);
+
+  useEffect(() => {
+    if (step !== 'right-done') return;
+    const timer = window.setTimeout(() => handleStartGame(), AUTO_ADVANCE_MS);
+    return () => clearTimeout(timer);
+  }, [step, handleStartGame]);
+
   const isMirrored = calibration.mirrored;
   const displayW = containerRef.current?.offsetWidth ?? window.innerWidth;
   const displayH = containerRef.current?.offsetHeight ?? window.innerHeight;
@@ -204,11 +218,11 @@ export function GestureTestPage() {
       case 'point-left':
         return 'Point at the LEFT card below and hold…';
       case 'left-done':
-        return 'Left detected! Now point at the RIGHT card.';
+        return 'Left detected! Get ready for the right card…';
       case 'point-right':
         return 'Point at the RIGHT card below and hold…';
       case 'right-done':
-        return 'Both cards detected! Ready to play.';
+        return 'Right detected! Starting game…';
       default:
         return '';
     }
@@ -251,6 +265,11 @@ export function GestureTestPage() {
                   {rightConfirmed ? '✅ Right' : '⬜ Right'}
                 </span>
               </div>
+              {!gestureAllowed && (
+                <p className="text-xs text-amber-300/90 leading-relaxed">
+                  Turn off Touch-only mode to test gestures.
+                </p>
+              )}
               {(step === 'point-left' || step === 'point-right') && (
                 <GestureStatus
                   gestureOutput={gestureOutput}
@@ -260,18 +279,12 @@ export function GestureTestPage() {
                 />
               )}
               {step === 'intro' && (
-                <button onClick={() => setStep('point-left')} className="btn btn-primary btn-lg w-full">
+                <button
+                  onClick={() => setStep('point-left')}
+                  className="btn btn-primary btn-lg w-full"
+                  disabled={!gestureAllowed}
+                >
                   Start Test
-                </button>
-              )}
-              {step === 'left-done' && (
-                <button onClick={() => setStep('point-right')} className="btn btn-primary btn-lg w-full">
-                  Test Right Card →
-                </button>
-              )}
-              {step === 'right-done' && (
-                <button onClick={handleStartGame} className="btn btn-primary btn-lg w-full">
-                  Start Game!
                 </button>
               )}
             </div>
