@@ -20,7 +20,7 @@ import {
   PLAY_FLOW_CARD_LEFT,
   PLAY_FLOW_CARD_RIGHT,
   PLAY_FLOW_GESTURE_STATUS,
-  PLAY_FLOW_PROMPT_BAND,
+  PLAY_FLOW_GESTURE_TEST_PROMPT,
   PLAY_FLOW_TOP_BAR,
   PLAY_FLOW_VIEWPORT,
   PLAY_FLOW_BAR_BTN,
@@ -274,21 +274,25 @@ export function GestureTestPage() {
 
       {cameraState.status === 'active' && (
         <>
-          <div className={PLAY_FLOW_PROMPT_BAND}>
-            <div className="rounded-2xl bg-black/60 px-4 py-2 backdrop-blur max-w-2xl w-full text-center space-y-1">
-              <p className="font-bold text-white text-base sm:text-lg">{instruction()}</p>
-              <div className="flex justify-center gap-4 text-xs">
-                <span className={leftConfirmed ? 'text-green-400' : 'text-white/40'}>
-                  {leftConfirmed ? '✅ Left' : '⬜ Left'}
-                </span>
-                <span className={rightConfirmed ? 'text-green-400' : 'text-white/40'}>
-                  {rightConfirmed ? '✅ Right' : '⬜ Right'}
-                </span>
-              </div>
-              {!gestureAllowed && (
-                <p className="text-xs text-amber-300/90">Turn off Touch-only mode in Settings.</p>
-              )}
+          <div className={PLAY_FLOW_GESTURE_TEST_PROMPT}>
+            <div className="rounded-xl bg-black/75 px-3 py-1.5 backdrop-blur-sm shadow-lg border border-white/10 max-w-[13rem] sm:max-w-xs">
+              <p className="text-xs font-bold text-white leading-tight text-center sm:text-sm">
+                {instruction()}
+              </p>
             </div>
+            <div className="flex justify-center gap-3 rounded-lg bg-black/50 px-2.5 py-0.5 text-[10px] backdrop-blur-sm sm:text-xs">
+              <span className={leftConfirmed ? 'text-green-400' : 'text-white/40'}>
+                {leftConfirmed ? '✅ Left' : '⬜ Left'}
+              </span>
+              <span className={rightConfirmed ? 'text-green-400' : 'text-white/40'}>
+                {rightConfirmed ? '✅ Right' : '⬜ Right'}
+              </span>
+            </div>
+            {!gestureAllowed && (
+              <p className="max-w-[13rem] text-center text-[10px] text-amber-300/90 sm:text-xs">
+                Turn off Touch-only mode in Settings.
+              </p>
+            )}
           </div>
 
           {(step === 'point-left' || step === 'point-right') && (

@@ -141,6 +141,19 @@
       padding: 0.65rem 0.85rem;
     }
 
+    .play-flow-viewport .play-flow-gesture-test-prompt {
+      top: 48%;
+    }
+
+    .play-flow-viewport .play-flow-gesture-test-prompt > div:first-child {
+      max-width: 11rem;
+      padding: 0.35rem 0.65rem;
+    }
+
+    .play-flow-viewport .play-flow-gesture-test-prompt > div:first-child p {
+      font-size: 0.7rem;
+    }
+
     .play-flow-viewport .play-flow-choice-card {
       width: 11rem;
       min-height: 6.25rem;

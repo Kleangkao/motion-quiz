@@ -17,6 +17,10 @@ export const PLAY_FLOW_FULLSCREEN_BTN =
 export const PLAY_FLOW_PROMPT_BAND =
   'play-flow-prompt-band absolute top-[11%] left-0 right-0 z-10 flex flex-col items-center pointer-events-none px-4';
 
+/** Compact centered instruction for gesture test (avoids top-bar overlap). */
+export const PLAY_FLOW_GESTURE_TEST_PROMPT =
+  'play-flow-gesture-test-prompt absolute top-1/2 left-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1 pointer-events-none px-4';
+
 export const PLAY_FLOW_CARD_SLOT =
   'play-flow-card-slot absolute -translate-x-1/2 -translate-y-1/2 max-w-[32vw]';
 
