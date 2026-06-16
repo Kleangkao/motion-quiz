@@ -252,7 +252,7 @@ export function GestureTestPage() {
             ← Back
           </button>
         </div>
-        <h1 className="text-center text-sm font-bold text-white sm:text-base">Gesture Test</h1>
+        <h1 className="sr-only">Gesture Test</h1>
         <div className="flex justify-end">
           <button onClick={() => setDebugMode((d) => !d)} className={`${PLAY_FLOW_BAR_BTN} text-xs`}>
             {debugMode ? 'Debug Off' : 'Debug'}
