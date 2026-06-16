@@ -44,6 +44,7 @@ import {
   PLAY_FLOW_TOP_BAR,
   PLAY_FLOW_VIEWPORT,
   PLAY_FLOW_BAR_BTN,
+  PLAY_FLOW_FACING,
 } from '@/camera/playFlowLayout';
 import { RotateToLandscapePrompt } from '@/components/game/RotateToLandscapePrompt';
 import { PlayFlowFullscreenButton } from '@/components/game/PlayFlowFullscreenButton';
@@ -108,7 +109,7 @@ export function GamePage() {
   appSettingsRef.current = appSettings;
 
   const { cameraState, start, stop } = useCamera({
-    facingMode: appSettings?.cameraFacingMode ?? 'user',
+    facingMode: PLAY_FLOW_FACING,
     resolution: appSettings?.cameraResolution ?? 'balanced',
   });
 
@@ -131,7 +132,7 @@ export function GamePage() {
   );
   targetZonesRef.current = targetZones;
 
-  const cameraFacing = appSettings?.cameraFacingMode ?? 'user';
+  const cameraFacing = PLAY_FLOW_FACING;
   const liveCalibration = useMemo(
     () => calibrationForFacing(calibration, cameraFacing),
     [calibration, cameraFacing],

@@ -123,6 +123,24 @@
       padding-bottom: max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 0.75rem));
     }
 
+    .play-flow-viewport.play-flow-calibration .play-flow-calibration-body {
+      padding-top: 2.75rem;
+    }
+
+    .play-flow-viewport.play-flow-calibration .play-flow-calibration-hand > div:first-child {
+      height: 4.5rem;
+      width: 3.5rem;
+    }
+
+    .play-flow-viewport.play-flow-calibration .play-flow-calibration-hand span {
+      font-size: 1.75rem;
+    }
+
+    .play-flow-viewport.play-flow-calibration .play-flow-calibration-panel {
+      max-width: 18rem;
+      padding: 0.65rem 0.85rem;
+    }
+
     .play-flow-viewport .play-flow-choice-card {
       width: 11rem;
       min-height: 6.25rem;

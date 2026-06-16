@@ -1,5 +1,7 @@
 /** Shared landscape-first layout for calibrate / gesture-test / game (matches desktop browser). */
 
+export const PLAY_FLOW_FACING = 'user' as const;
+
 export const PLAY_FLOW_VIEWPORT =
   'play-flow-viewport relative h-[100dvh] w-full bg-black overflow-hidden select-none';
 

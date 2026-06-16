@@ -49,3 +49,5 @@ qa-smoke.mjs
 *.njsproj
 *.sln
 *.sw?
+
+.vercel

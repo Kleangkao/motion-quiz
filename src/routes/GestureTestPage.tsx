@@ -24,6 +24,7 @@ import {
   PLAY_FLOW_TOP_BAR,
   PLAY_FLOW_VIEWPORT,
   PLAY_FLOW_BAR_BTN,
+  PLAY_FLOW_FACING,
 } from '@/camera/playFlowLayout';
 import { RotateToLandscapePrompt } from '@/components/game/RotateToLandscapePrompt';
 import { PlayFlowFullscreenButton } from '@/components/game/PlayFlowFullscreenButton';
@@ -104,7 +105,7 @@ export function GestureTestPage() {
     undefined;
 
   const { cameraState, start, stop } = useCamera({
-    facingMode: settings?.cameraFacingMode ?? 'user',
+    facingMode: PLAY_FLOW_FACING,
     resolution: settings?.cameraResolution ?? 'balanced',
   });
 
@@ -123,7 +124,7 @@ export function GestureTestPage() {
 
   const gestureAllowed = isGestureInputAllowed(selectionMode);
 
-  const facingMode = settings?.cameraFacingMode ?? 'user';
+  const facingMode = PLAY_FLOW_FACING;
   const liveCalibration = calibrationForFacing(calibration, facingMode);
 
   const { gestureOutput, diagnostics, resetGesture } = useVisionDetection({
