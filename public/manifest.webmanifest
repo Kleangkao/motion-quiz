@@ -1,0 +1,19 @@
+{
+  "name": "Seeker Motion Quiz",
+  "short_name": "Motion Quiz",
+  "description": "Camera-based gesture quiz for Solana Mobile — point left or right to answer.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#020617",
+  "theme_color": "#1e1b4b",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["games", "education"]
+}

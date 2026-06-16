@@ -1,0 +1,47 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+build-output.txt
+dev-server.txt
+test-output.txt
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+build/
+
+# Vite / tooling cache
+.vite/
+
+# Expo (if used later)
+.expo/
+.expo-shared/
+
+# Environment / secrets
+.env
+.env.*
+*.local
+
+# Test / coverage artifacts
+coverage/
+playwright-report/
+test-results/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
