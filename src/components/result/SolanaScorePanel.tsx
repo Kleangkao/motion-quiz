@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useWallet, shortenAddress } from '@/solana/WalletProvider';
 import type { LessonPack, ResultSession } from '@/storage/types';
@@ -163,6 +164,12 @@ export function SolanaScorePanel({ session, lesson, onUpdated }: Props) {
           >
             View transaction
           </a>
+          <Link
+            to={`/leaderboard?pack=${encodeURIComponent(session.lessonId)}`}
+            className="btn btn-secondary btn-sm w-full text-xs text-center"
+          >
+            View leaderboard
+          </Link>
         </div>
       ) : !address ? (
         <div className="space-y-3">

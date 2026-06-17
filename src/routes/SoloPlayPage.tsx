@@ -137,6 +137,23 @@ export function SoloPlayPage() {
         Pick a quiz, choose your camera, then point left or right to answer.
       </p>
 
+      <div className="flex gap-2 mb-4">
+        <button
+          type="button"
+          onClick={() => navigate('/results')}
+          className="btn btn-secondary btn-sm flex-1"
+        >
+          Results
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/leaderboard')}
+          className="btn btn-secondary btn-sm flex-1"
+        >
+          Leaderboard
+        </button>
+      </div>
+
       <div className="space-y-6">
         <section className="space-y-3">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-white/40">
