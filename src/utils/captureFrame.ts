@@ -18,6 +18,7 @@ function computeCropRegion(
   video: HTMLVideoElement,
   frameRect: FrameRect,
   containerRect: DOMRect,
+  mirrored: boolean,
 ): CropRegion | null {
   if (video.videoWidth <= 0 || video.videoHeight <= 0) return null;
 
@@ -36,12 +37,25 @@ function computeCropRegion(
   const fx = frameRect.left - containerRect.left;
   const fy = frameRect.top - containerRect.top;
 
-  const sx = Math.max(0, (fx - offsetX) / scale);
+  // CSS scale-x-[-1] mirrors the preview; drawImage reads raw video pixels.
+  const fxForSource = mirrored ? containerRect.width - fx - fw : fx;
+
+  const sx = Math.max(0, (fxForSource - offsetX) / scale);
   const sy = Math.max(0, (fy - offsetY) / scale);
   const sw = fw / scale;
   const sh = fh / scale;
 
   return { sx, sy, sw, sh, fw, fh };
+}
+
+function isMediaStreamLike(
+  value: unknown,
+): value is { getVideoTracks(): MediaStreamTrack[] } {
+  return (
+    value != null &&
+    typeof value === 'object' &&
+    typeof (value as MediaStream).getVideoTracks === 'function'
+  );
 }
 
 function renderCropToDataUrl(
@@ -94,47 +108,61 @@ export function captureVideoFrame(
   containerRect: DOMRect,
   mirrored: boolean,
 ): string | null {
-  const crop = computeCropRegion(video, frameRect, containerRect);
+  const crop = computeCropRegion(video, frameRect, containerRect, mirrored);
   if (!crop) return null;
   return renderCropToDataUrl(video, crop, mirrored, video.videoWidth, video.videoHeight);
 }
 
 /**
- * Prefer ImageCapture / fresh frame callback for lower capture latency than video buffer.
+ * Capture the visible video preview into a JPEG data URL.
+ * Uses the HTMLVideoElement as the source of truth (WYSIWYG with on-screen preview).
+ * Frame/container rects are sampled after the fresh-frame wait so crop matches the draw.
  */
 export async function captureVideoFrameAsync(
+  video: HTMLVideoElement,
+  getFrameRect: () => FrameRect,
+  getContainerRect: () => DOMRect,
+  mirrored: boolean,
+): Promise<string | null> {
+  await waitForFreshVideoFrame(video);
+
+  const frameRect = getFrameRect();
+  const containerRect = getContainerRect();
+  const fromVideo = captureVideoFrame(video, frameRect, containerRect, mirrored);
+  if (fromVideo) return fromVideo;
+
+  // Last resort only: ImageCapture can lag behind the painted <video> preview on mobile.
+  return captureViaImageCaptureFallback(video, frameRect, containerRect, mirrored);
+}
+
+async function captureViaImageCaptureFallback(
   video: HTMLVideoElement,
   frameRect: FrameRect,
   containerRect: DOMRect,
   mirrored: boolean,
 ): Promise<string | null> {
-  await waitForFreshVideoFrame(video);
-
-  const crop = computeCropRegion(video, frameRect, containerRect);
+  const crop = computeCropRegion(video, frameRect, containerRect, mirrored);
   if (!crop) return null;
 
   const stream = video.srcObject;
-  if (stream instanceof MediaStream) {
-    const track = stream.getVideoTracks()[0];
-    if (track && typeof ImageCapture !== 'undefined') {
-      try {
-        const capture = new ImageCapture(track);
-        const bitmap = await capture.grabFrame();
-        const dataUrl = renderCropToDataUrl(
-          bitmap,
-          crop,
-          mirrored,
-          bitmap.width,
-          bitmap.height,
-        );
-        bitmap.close();
-        if (dataUrl) return dataUrl;
-      } catch {
-        // Fall back to video element draw.
-      }
-    }
-  }
+  if (!isMediaStreamLike(stream)) return null;
 
-  await waitForFreshVideoFrame(video);
-  return captureVideoFrame(video, frameRect, containerRect, mirrored);
+  const track = stream.getVideoTracks()[0];
+  if (!track || typeof ImageCapture === 'undefined') return null;
+
+  try {
+    const capture = new ImageCapture(track);
+    const bitmap = await capture.grabFrame();
+    const dataUrl = renderCropToDataUrl(
+      bitmap,
+      crop,
+      mirrored,
+      bitmap.width,
+      bitmap.height,
+    );
+    bitmap.close();
+    return dataUrl;
+  } catch {
+    return null;
+  }
 }

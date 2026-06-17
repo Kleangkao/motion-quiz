@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { captureVideoFrameAsync } from '@/utils/captureFrame';
+import {
+  COUNTDOWN_TICK_MS,
+  FLASH_PREVIEW_DELAY_MS,
+  FRAME_SPAWN_POSITION,
+  FRAME_WARP_TIMES_MS,
+  PREVIEW_MS,
+  RUN_MS,
+  WARP_ANIM_MS,
+} from '@/game/photoCaptureTiming';
 
 interface Props {
   videoRef: React.RefObject<HTMLVideoElement | null>;
@@ -8,10 +17,6 @@ interface Props {
   onComplete: (photoDataUrl: string | null) => void;
 }
 
-const RUN_MS = 3400;
-const PREVIEW_MS = 1400;
-const WARP_INTERVAL_MS = 1100;
-const WARP_ANIM_MS = 320;
 const FRAME_W_RATIO = 0.38;
 const FRAME_ASPECT = 4 / 3;
 const MIN_WARP_DIST = 0.2;
@@ -40,6 +45,8 @@ function pickRandomSpot(prev: NormPoint | null): NormPoint {
   };
 }
 
+const POSITION_TRANSITION = `left ${WARP_ANIM_MS}ms cubic-bezier(0.25, 0.85, 0.35, 1), top ${WARP_ANIM_MS}ms cubic-bezier(0.25, 0.85, 0.35, 1)`;
+
 /**
  * Mini-game: photo frame warps between random spots (not continuous drag).
  * Player tries to get in frame before the snap.
@@ -48,10 +55,12 @@ export function PhotoCaptureMiniGame({ videoRef, containerRef, mirrored, onCompl
   const [phase, setPhase] = useState<Phase>('running');
   const [countdown, setCountdown] = useState(3);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [framePos, setFramePos] = useState<NormPoint>(() => pickRandomSpot(null));
+  const [framePos, setFramePos] = useState<NormPoint>(FRAME_SPAWN_POSITION);
+  const [positionTransitionsOn, setPositionTransitionsOn] = useState(false);
   const frameRef = useRef<HTMLDivElement>(null);
   const posRef = useRef<NormPoint>(framePos);
   const startRef = useRef(performance.now());
+  const positionFrozenRef = useRef(false);
 
   const applyFrameLayout = useCallback(() => {
     const container = containerRef.current;
@@ -85,17 +94,26 @@ export function PhotoCaptureMiniGame({ videoRef, containerRef, mirrored, onCompl
   useEffect(() => {
     if (phase !== 'running') return;
 
-    const warp = () => {
-      setFramePos((prev) => {
-        const next = pickRandomSpot(prev);
-        posRef.current = next;
-        return next;
-      });
-    };
+    positionFrozenRef.current = false;
+    setPositionTransitionsOn(false);
+    setFramePos(FRAME_SPAWN_POSITION);
+    posRef.current = FRAME_SPAWN_POSITION;
 
-    warp();
-    const warpId = window.setInterval(warp, WARP_INTERVAL_MS);
-    return () => clearInterval(warpId);
+    const warpTimeouts = FRAME_WARP_TIMES_MS.map((delayMs) =>
+      window.setTimeout(() => {
+        if (positionFrozenRef.current) return;
+        setPositionTransitionsOn(true);
+        setFramePos((prev) => {
+          const next = pickRandomSpot(prev);
+          posRef.current = next;
+          return next;
+        });
+      }, delayMs),
+    );
+
+    return () => {
+      warpTimeouts.forEach((id) => clearTimeout(id));
+    };
   }, [phase]);
 
   useEffect(() => {
@@ -106,9 +124,12 @@ export function PhotoCaptureMiniGame({ videoRef, containerRef, mirrored, onCompl
       const elapsed = performance.now() - startRef.current;
       const left = Math.ceil((RUN_MS - elapsed) / 1000);
       setCountdown(Math.max(0, left));
-    }, 200);
+    }, COUNTDOWN_TICK_MS);
 
     const snap = window.setTimeout(() => {
+      positionFrozenRef.current = true;
+      setPhase('flash');
+
       void (async () => {
         const video = videoRef.current;
         const container = containerRef.current;
@@ -116,18 +137,19 @@ export function PhotoCaptureMiniGame({ videoRef, containerRef, mirrored, onCompl
         let url: string | null = null;
 
         if (video && container && frame) {
-          const fr = frame.getBoundingClientRect();
           url = await captureVideoFrameAsync(
             video,
-            { left: fr.left, top: fr.top, width: fr.width, height: fr.height },
-            container.getBoundingClientRect(),
+            () => {
+              const fr = frame.getBoundingClientRect();
+              return { left: fr.left, top: fr.top, width: fr.width, height: fr.height };
+            },
+            () => container.getBoundingClientRect(),
             mirrored,
           );
         }
 
         setPreviewUrl(url);
-        setPhase('flash');
-        setTimeout(() => setPhase('preview'), 180);
+        setTimeout(() => setPhase('preview'), FLASH_PREVIEW_DELAY_MS);
       })();
     }, RUN_MS);
 
@@ -143,33 +165,37 @@ export function PhotoCaptureMiniGame({ videoRef, containerRef, mirrored, onCompl
     return () => clearTimeout(t);
   }, [phase, previewUrl, onComplete]);
 
+  const positionTransition =
+    phase === 'running' && positionTransitionsOn ? POSITION_TRANSITION : 'none';
+
   return (
     <div className="absolute inset-0 z-40 pointer-events-none">
       <div className="absolute inset-0 bg-black/25" />
 
       {phase === 'running' && (
-        <>
-          <div className="absolute top-20 left-0 right-0 text-center z-50">
-            <p className="text-2xl font-black text-white drop-shadow-lg">📸 Photo time!</p>
-            <p className="text-sm text-white/80 mt-1">Jump into the frame!</p>
-            <p className="text-4xl font-black text-yellow-300 mt-2 tabular-nums">{countdown || '📷'}</p>
-          </div>
+        <div className="absolute top-20 left-0 right-0 text-center z-50">
+          <p className="text-2xl font-black text-white drop-shadow-lg">📸 Photo time!</p>
+          <p className="text-sm text-white/80 mt-1">Jump into the frame!</p>
+          <p className="text-4xl font-black text-yellow-300 mt-2 tabular-nums">{countdown || '📷'}</p>
+        </div>
+      )}
 
-          <div
-            ref={frameRef}
-            className="absolute border-4 border-white rounded-2xl shadow-2xl overflow-hidden photo-frame-warp"
-            style={{
-              boxShadow: '0 0 0 9999px rgba(0,0,0,0.35)',
-              transition: `left ${WARP_ANIM_MS}ms cubic-bezier(0.25, 0.85, 0.35, 1), top ${WARP_ANIM_MS}ms cubic-bezier(0.25, 0.85, 0.35, 1)`,
-            }}
-          >
-            <div className="absolute inset-0 border-2 border-dashed border-white/40 rounded-xl m-2 pointer-events-none" />
-            <div className="absolute -top-1 -left-1 h-6 w-6 border-t-4 border-l-4 border-yellow-400 rounded-tl-lg" />
-            <div className="absolute -top-1 -right-1 h-6 w-6 border-t-4 border-r-4 border-yellow-400 rounded-tr-lg" />
-            <div className="absolute -bottom-1 -left-1 h-6 w-6 border-b-4 border-l-4 border-yellow-400 rounded-bl-lg" />
-            <div className="absolute -bottom-1 -right-1 h-6 w-6 border-b-4 border-r-4 border-yellow-400 rounded-br-lg" />
-          </div>
-        </>
+      {phase !== 'preview' && (
+        <div
+          ref={frameRef}
+          className="absolute border-4 border-white rounded-2xl shadow-2xl overflow-hidden photo-frame-warp"
+          style={{
+            boxShadow: '0 0 0 9999px rgba(0,0,0,0.35)',
+            transition: positionTransition,
+            opacity: phase === 'flash' ? 0 : 1,
+          }}
+        >
+          <div className="absolute inset-0 border-2 border-dashed border-white/40 rounded-xl m-2 pointer-events-none" />
+          <div className="absolute -top-1 -left-1 h-6 w-6 border-t-4 border-l-4 border-yellow-400 rounded-tl-lg" />
+          <div className="absolute -top-1 -right-1 h-6 w-6 border-t-4 border-r-4 border-yellow-400 rounded-tr-lg" />
+          <div className="absolute -bottom-1 -left-1 h-6 w-6 border-b-4 border-l-4 border-yellow-400 rounded-bl-lg" />
+          <div className="absolute -bottom-1 -right-1 h-6 w-6 border-b-4 border-r-4 border-yellow-400 rounded-br-lg" />
+        </div>
       )}
 
       {phase === 'flash' && (
