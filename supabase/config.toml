@@ -1,0 +1,22 @@
+# Motion Quiz — Supabase local config (Phase A)
+# Project ref is public; secrets belong in Supabase dashboard / CLI secrets only.
+
+project_id = "qpynjdcgpqeknjlmlmju"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[functions.verify-score]
+verify_jwt = false

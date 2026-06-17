@@ -28,6 +28,7 @@ build/
 # Environment / secrets
 .env
 .env.*
+!.env.example
 *.local
 
 # Test / coverage artifacts
