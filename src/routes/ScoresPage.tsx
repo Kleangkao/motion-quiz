@@ -22,6 +22,7 @@ import {
   loadLeaderboardTopicOptions,
   resolveLeaderboardPackId,
 } from '@/leaderboard/leaderboardTopics';
+import { parseScoresTab, type ScoresTab } from '@/leaderboard/scoresRoutes';
 import type { LeaderboardTopicOption, RecordedScoreRow, TopicLeaderboardRow } from '@/leaderboard/types';
 
 function LeaderboardRowCard({ row }: { row: TopicLeaderboardRow }) {
@@ -82,7 +83,7 @@ function MyScoreCard({ row }: { row: RecordedScoreRow }) {
   );
 }
 
-export function LeaderboardPage() {
+export function ScoresPage() {
   const cluster = getSolanaCluster();
   const configured = isSupabaseConfigured();
   const { address, connecting, requestConnect } = useWallet();
@@ -93,10 +94,13 @@ export function LeaderboardPage() {
   const [leaderboardRows, setLeaderboardRows] = useState<TopicLeaderboardRow[]>([]);
   const [myScores, setMyScores] = useState<RecordedScoreRow[]>([]);
   const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const [hasFetchedLeaderboard, setHasFetchedLeaderboard] = useState(false);
   const [myScoresLoading, setMyScoresLoading] = useState(false);
   const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
   const [myScoresError, setMyScoresError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const activeTab = parseScoresTab(searchParams.get('tab'));
 
   const selectedPackId = useMemo(
     () => resolveLeaderboardPackId(searchParams.get('pack'), topicOptions),
@@ -108,6 +112,13 @@ export function LeaderboardPage() {
     [topicOptions, selectedPackId],
   );
 
+  const selectionReady = !topicsLoading && topicOptions.length > 0 && selectedTopic != null;
+
+  const leaderboardPending =
+    activeTab === 'leaderboard' &&
+    configured &&
+    selectionReady &&
+    (leaderboardLoading || !hasFetchedLeaderboard);
   useEffect(() => {
     let cancelled = false;
     setTopicsLoading(true);
@@ -128,6 +139,7 @@ export function LeaderboardPage() {
 
     setLeaderboardLoading(true);
     setLeaderboardError(null);
+    setHasFetchedLeaderboard(false);
 
     const result = await fetchTopicLeaderboard({
       packId: selectedTopic.packId,
@@ -144,6 +156,7 @@ export function LeaderboardPage() {
     }
 
     setLeaderboardLoading(false);
+    setHasFetchedLeaderboard(true);
   }, [configured, selectedTopic, cluster]);
 
   const loadMyScores = useCallback(async () => {
@@ -173,15 +186,37 @@ export function LeaderboardPage() {
   }, [configured, address, cluster]);
 
   useEffect(() => {
+    if (activeTab !== 'leaderboard' || topicsLoading || !configured || !selectedTopic) return;
     void loadLeaderboard();
-  }, [loadLeaderboard, refreshKey]);
+  }, [loadLeaderboard, refreshKey, activeTab, topicsLoading, configured, selectedTopic]);
 
   useEffect(() => {
+    if (activeTab !== 'my-scores') return;
     void loadMyScores();
-  }, [loadMyScores, refreshKey]);
+  }, [loadMyScores, refreshKey, activeTab]);
+
+  const updateSearchParams = (mutate: (params: URLSearchParams) => void) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      mutate(next);
+      return next;
+    });
+  };
 
   const selectPack = (packId: string) => {
-    setSearchParams({ pack: packId });
+    updateSearchParams((params) => {
+      params.set('pack', packId);
+    });
+  };
+
+  const selectTab = (tab: ScoresTab) => {
+    updateSearchParams((params) => {
+      if (tab === 'leaderboard') {
+        params.delete('tab');
+      } else {
+        params.set('tab', tab);
+      }
+    });
   };
 
   const handleRefresh = () => {
@@ -197,15 +232,15 @@ export function LeaderboardPage() {
   if (topicsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner label="Loading leaderboard topics…" />
+        <LoadingSpinner label="Loading scores…" />
       </div>
     );
   }
 
   return (
     <PageLayout
-      title="Leaderboard"
-      backTo="/play"
+      title="Scores"
+      backTo="/"
       actions={
         configured ? (
           <button type="button" onClick={handleRefresh} className="btn btn-secondary btn-sm text-xs">
@@ -216,16 +251,27 @@ export function LeaderboardPage() {
     >
       <div className="space-y-6">
         <div>
-          <p className="text-sm text-white/50">
-            Verified scores recorded on Solana {cluster}.
-          </p>
+          <p className="text-sm text-white/50">Verified scores recorded on Solana devnet.</p>
+        </div>
+
+        <div className="flex gap-2">
+          {(['leaderboard', 'my-scores'] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => selectTab(tab)}
+              className={`btn btn-sm flex-1 ${activeTab === tab ? 'btn-primary' : 'btn-secondary'}`}
+            >
+              {tab === 'leaderboard' ? 'Leaderboard' : 'My Scores'}
+            </button>
+          ))}
         </div>
 
         {!configured ? (
           <div className="glass-card p-5">
-            <p className="text-sm text-white/60">Leaderboard is not configured yet.</p>
+            <p className="text-sm text-white/60">Scores are not configured yet.</p>
           </div>
-        ) : (
+        ) : activeTab === 'leaderboard' ? (
           <>
             <section className="space-y-3">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-white/40">Topic</h2>
@@ -247,11 +293,7 @@ export function LeaderboardPage() {
             </section>
 
             <section className="space-y-3">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-white/40">
-                Top scores
-              </h2>
-
-              {leaderboardLoading ? (
+              {!selectionReady || leaderboardPending ? (
                 <LoadingSpinner label="Loading leaderboard…" />
               ) : leaderboardError ? (
                 <div className="glass-card p-5">
@@ -269,59 +311,56 @@ export function LeaderboardPage() {
                 </div>
               )}
             </section>
-
-            <section className="space-y-3">
-              <h2 className="text-xs font-semibold uppercase tracking-wide text-white/40">
-                My recorded scores
-              </h2>
-
-              {!address ? (
-                <div className="glass-card p-5 space-y-3">
-                  <p className="text-sm text-white/60">
-                    Connect wallet to see your recorded scores.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleConnect}
-                    disabled={connecting}
-                    className="btn btn-secondary btn-sm"
-                  >
-                    {connecting ? 'Connecting…' : 'Connect Wallet'}
-                  </button>
-                </div>
-              ) : myScoresLoading ? (
-                <LoadingSpinner label="Loading your scores…" />
-              ) : myScoresError ? (
-                <div className="glass-card p-5">
-                  <p className="text-sm text-red-400">{myScoresError}</p>
-                </div>
-              ) : myScores.length === 0 ? (
-                <div className="glass-card p-5 space-y-2">
-                  <p className="text-sm text-white/60">
-                    No recorded scores for this wallet yet.
-                  </p>
-                  <p className="text-xs text-white/40">
-                    Play a built-in topic and use Record Score on Solana from the result page.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {myScores.map((row) => (
-                    <MyScoreCard key={row.id} row={row} />
-                  ))}
-                </div>
-              )}
-            </section>
           </>
+        ) : (
+          <section className="space-y-3">
+            {!address ? (
+              <div className="glass-card p-5 space-y-3">
+                <p className="text-sm text-white/60">
+                  Connect wallet to see your recorded scores.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleConnect}
+                  disabled={connecting}
+                  className="btn btn-secondary btn-sm"
+                >
+                  {connecting ? 'Connecting…' : 'Connect Wallet'}
+                </button>
+              </div>
+            ) : myScoresLoading ? (
+              <LoadingSpinner label="Loading your scores…" />
+            ) : myScoresError ? (
+              <div className="glass-card p-5">
+                <p className="text-sm text-red-400">{myScoresError}</p>
+              </div>
+            ) : myScores.length === 0 ? (
+              <div className="glass-card p-5 space-y-2">
+                <p className="text-sm text-white/60">No recorded scores for this wallet yet.</p>
+                <p className="text-xs text-white/40">
+                  Play a built-in topic and use Record Score on Solana from the result page.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {myScores.map((row) => (
+                  <MyScoreCard key={row.id} row={row} />
+                ))}
+              </div>
+            )}
+          </section>
         )}
 
         <p className="text-xs text-white/30 text-center">
           Built-in topics only. Custom topics are not eligible.{' '}
           <Link to="/play" className="text-indigo-300/80 hover:text-indigo-200">
-            Back to Play
+            Start Quiz
           </Link>
         </p>
       </div>
     </PageLayout>
   );
 }
+
+/** @deprecated Use ScoresPage — kept for backward-compatible imports */
+export const LeaderboardPage = ScoresPage;

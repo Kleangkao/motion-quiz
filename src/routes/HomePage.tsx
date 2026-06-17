@@ -39,8 +39,8 @@ export function HomePage() {
   };
 
   const primaryModes = [
-    { path: '/play', emoji: '🎮', title: 'Play', desc: 'Built-in quiz packs' },
-    { path: '/results', emoji: '📊', title: 'Results', desc: 'Local history & proofs' },
+    { path: '/play', emoji: '🎮', title: 'Start Quiz', desc: 'Pick a topic and play' },
+    { path: '/scores', emoji: '🏆', title: 'Scores', desc: 'Leaderboard & recorded Solana scores' },
     { path: '/settings', emoji: '⚙', title: 'Settings', desc: 'Camera & gesture tuning' },
   ] as const;
 

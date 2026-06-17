@@ -8,7 +8,7 @@ import { ResultPage } from './routes/ResultPage';
 import { LessonEditorPage } from './routes/LessonEditorPage';
 import { CreateTopicPage } from './routes/CreateTopicPage';
 import { ResultsHistoryPage } from './routes/ResultsHistoryPage';
-import { LeaderboardPage } from './routes/LeaderboardPage';
+import { ScoresPage } from './routes/ScoresPage';
 import { SettingsPage } from './routes/SettingsPage';
 
 export default function App() {
@@ -32,7 +32,8 @@ export default function App() {
       <Route path="/play/:lessonId/game" element={<GamePage />} />
       <Route path="/play/:lessonId/result/:sessionId" element={<ResultPage />} />
       <Route path="/results" element={<ResultsHistoryPage />} />
-      <Route path="/leaderboard" element={<LeaderboardPage />} />
+      <Route path="/scores" element={<ScoresPage />} />
+      <Route path="/leaderboard" element={<ScoresPage />} />
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="*" element={<HomePage />} />
     </Routes>

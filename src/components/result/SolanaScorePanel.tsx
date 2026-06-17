@@ -1,3 +1,4 @@
+import { buildScoresLeaderboardLink } from '@/leaderboard/scoresRoutes';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useWallet, shortenAddress } from '@/solana/WalletProvider';
@@ -165,7 +166,7 @@ export function SolanaScorePanel({ session, lesson, onUpdated }: Props) {
             View transaction
           </a>
           <Link
-            to={`/leaderboard?pack=${encodeURIComponent(session.lessonId)}`}
+            to={buildScoresLeaderboardLink(session.lessonId)}
             className="btn btn-secondary btn-sm w-full text-xs text-center"
           >
             View leaderboard
