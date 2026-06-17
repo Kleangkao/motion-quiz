@@ -26,7 +26,8 @@ export {
 } from '@shared/scoreReceipt';
 
 import type { LessonPack } from '@/storage/types';
-import type { PackContentForHash, ResultHashInput, ScoreReceiptPayload, SolanaCluster } from '@shared/scoreReceipt';
+import type { ResultSession } from '@/storage/types';
+import type { PackContentForHash, ResultHashInput, ScoreReceiptExpected, ScoreReceiptPayload, SolanaCluster } from '@shared/scoreReceipt';
 import {
   SCORE_RECEIPT_APP,
   SCORE_RECEIPT_TYPE,
@@ -108,4 +109,40 @@ export async function buildScoreReceiptPayload(
     durationMs: input.durationMs,
     resultHash,
   };
+}
+
+export function scoreReceiptExpectedFromPayload(payload: ScoreReceiptPayload): ScoreReceiptExpected {
+  return {
+    cluster: payload.cluster,
+    walletAddress: payload.walletAddress,
+    packId: payload.packId,
+    packTitle: payload.packTitle,
+    packContentHash: payload.packContentHash,
+    sessionId: payload.sessionId,
+    score: payload.score,
+    total: payload.total,
+    accuracy: payload.accuracy,
+    durationMs: payload.durationMs,
+    resultHash: payload.resultHash,
+  };
+}
+
+export async function buildScoreReceiptFromSession(
+  lesson: LessonPack,
+  session: ResultSession,
+  walletAddress: string,
+  cluster: SolanaCluster,
+): Promise<ScoreReceiptPayload> {
+  const packContentHash = await computePackContentHashFromLesson(lesson);
+  return buildScoreReceiptPayload({
+    cluster,
+    lesson,
+    packContentHash,
+    sessionId: session.id,
+    walletAddress,
+    score: session.score,
+    totalAnswered: session.totalAnswered,
+    skippedCount: session.skippedCount,
+    durationMs: session.durationSeconds * 1000,
+  });
 }

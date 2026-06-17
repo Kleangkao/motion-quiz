@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import type { Transaction } from '@solana/web3.js';
 import { getWallets } from '@wallet-standard/app';
 import type { Wallet } from '@wallet-standard/base';
 import {
@@ -29,6 +30,10 @@ import {
   type BrowserWalletId,
 } from './web-wallet-browser';
 import { friendlyWalletError } from './walletErrors';
+import { getSolanaRpcUrl } from './env';
+import { sendScoreReceiptTransaction, walletSupportsScoreRecording } from './scoreReceiptSender';
+import { getWalletAddressString, shortenWalletAddress } from './walletAddress';
+import { BrowserWalletPicker } from '@/components/wallet/BrowserWalletPicker';
 
 function pickSolanaWallet(wallets: readonly Wallet[]): Wallet | null {
   return (
@@ -44,9 +49,14 @@ interface WalletContextValue {
   isBrowserWalletMode: boolean;
   connecting: boolean;
   error: string | null;
+  supportsTransactions: boolean;
+  pickerOpen: boolean;
   connect: (browserWallet?: BrowserWalletId) => Promise<void>;
+  requestConnect: () => Promise<void>;
+  closeWalletPicker: () => void;
   disconnect: () => Promise<void>;
   signMessage: (message: string) => Promise<Uint8Array>;
+  sendTransaction: (transaction: Transaction) => Promise<string>;
 }
 
 const WalletContext = createContext<WalletContextValue | null>(null);
@@ -59,6 +69,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [browserWalletId, setBrowserWalletId] = useState<BrowserWalletId | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     ensureMwaRegistered();
@@ -92,10 +103,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         const result = await connectFeature.connect({ silent: false });
         const account = result.accounts[0] ?? solWallet.accounts[0];
         if (!account) throw new Error('No wallet account returned');
+        const accountAddress = getWalletAddressString(account);
+        if (!accountAddress) throw new Error('Wallet connected but no address was returned.');
         setWallet(solWallet);
         setBrowserWalletId(null);
         setWalletLabel(solWallet.name);
-        setAddress(account.address);
+        setAddress(accountAddress);
       } catch (e) {
         setError(friendlyWalletError(e));
         throw e;
@@ -104,6 +117,30 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
     },
     [browserMode],
+  );
+
+  const requestConnect = useCallback(async () => {
+    if (browserMode) {
+      setPickerOpen(true);
+      return;
+    }
+    await connect();
+  }, [browserMode, connect]);
+
+  const closeWalletPicker = useCallback(() => {
+    setPickerOpen(false);
+  }, []);
+
+  const handleBrowserPickerSelect = useCallback(
+    async (id: BrowserWalletId) => {
+      try {
+        await connect(id);
+        setPickerOpen(false);
+      } catch {
+        // surfaced via wallet context
+      }
+    },
+    [connect],
   );
 
   const disconnect = useCallback(async () => {
@@ -148,6 +185,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [browserWalletId, wallet],
   );
 
+  const supportsTransactions = useMemo(
+    () => walletSupportsScoreRecording({ browserWalletId, wallet }),
+    [browserWalletId, wallet],
+  );
+
+  const sendTransaction = useCallback(
+    async (transaction: Transaction): Promise<string> => {
+      return sendScoreReceiptTransaction(
+        { browserWalletId, wallet },
+        transaction,
+        getSolanaRpcUrl(),
+      );
+    },
+    [browserWalletId, wallet],
+  );
+
   const value = useMemo(
     () => ({
       address,
@@ -155,14 +208,46 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       isBrowserWalletMode: browserMode,
       connecting,
       error,
+      supportsTransactions,
+      pickerOpen,
       connect,
+      requestConnect,
+      closeWalletPicker,
       disconnect,
       signMessage,
+      sendTransaction,
     }),
-    [address, walletLabel, browserMode, connecting, error, connect, disconnect, signMessage],
+    [
+      address,
+      walletLabel,
+      browserMode,
+      connecting,
+      error,
+      supportsTransactions,
+      pickerOpen,
+      connect,
+      requestConnect,
+      closeWalletPicker,
+      disconnect,
+      signMessage,
+      sendTransaction,
+    ],
   );
 
-  return <WalletContext.Provider value={value}>{children}</WalletContext.Provider>;
+  return (
+    <WalletContext.Provider value={value}>
+      {children}
+      {browserMode && pickerOpen && (
+        <BrowserWalletPicker
+          open
+          onClose={closeWalletPicker}
+          onSelect={handleBrowserPickerSelect}
+          connecting={connecting}
+          error={error}
+        />
+      )}
+    </WalletContext.Provider>
+  );
 }
 
 export function useWallet(): WalletContextValue {
@@ -171,6 +256,6 @@ export function useWallet(): WalletContextValue {
   return ctx;
 }
 
-export function shortenAddress(addr: string, chars = 4): string {
-  return `${addr.slice(0, chars)}…${addr.slice(-chars)}`;
+export function shortenAddress(addr: string | null | undefined, chars = 4): string {
+  return shortenWalletAddress(addr, chars);
 }

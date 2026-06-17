@@ -1,11 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useWallet, shortenAddress } from '@/solana/WalletProvider';
-import { BrowserWalletPicker } from '@/components/wallet/BrowserWalletPicker';
-import type { BrowserWalletId } from '@/solana/web-wallet-browser';
 
 export function WalletHeaderButton() {
-  const { address, isBrowserWalletMode, connect, disconnect, connecting, error } = useWallet();
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const { address, requestConnect, disconnect, connecting, error } = useWallet();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -20,25 +17,12 @@ export function WalletHeaderButton() {
     return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [menuOpen]);
 
-  const handleBrowserConnect = async (id: BrowserWalletId) => {
-    try {
-      await connect(id);
-      setPickerOpen(false);
-    } catch {
-      // error surfaced via wallet context
-    }
-  };
-
   const handleClick = () => {
     if (address) {
       setMenuOpen((open) => !open);
       return;
     }
-    if (isBrowserWalletMode) {
-      setPickerOpen(true);
-      return;
-    }
-    connect().catch(() => {});
+    requestConnect().catch(() => {});
   };
 
   const handleCopy = async () => {
@@ -85,19 +69,10 @@ export function WalletHeaderButton() {
           </button>
         </div>
       )}
-      {error && !pickerOpen && (
+      {error && (
         <p className="absolute top-full right-0 mt-1 text-[10px] text-red-400 max-w-[12rem] text-right">
           {error}
         </p>
-      )}
-      {pickerOpen && (
-        <BrowserWalletPicker
-          open
-          onClose={() => setPickerOpen(false)}
-          onSelect={handleBrowserConnect}
-          connecting={connecting}
-          error={error}
-        />
       )}
     </div>
   );

@@ -5,16 +5,19 @@ import type { ResultSession } from '@/storage/types';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
-import { ScoreProofPanel } from '@/components/result/ScoreProofPanel';
+import { SolanaScorePanel } from '@/components/result/SolanaScorePanel';
 import { GameMomentPanel } from '@/components/result/GameMomentPanel';
 import { SessionPhotoGallery } from '@/components/result/SessionPhotoGallery';
 import { getSessionPhotos } from '@/game/sessionPhotoCache';
+import { getLesson } from '@/storage/lessonStorage';
+import type { LessonPack } from '@/storage/types';
 
 export function ResultPage() {
   const { lessonId, sessionId } = useParams<{ lessonId: string; sessionId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const [session, setSession] = useState<ResultSession | null>(null);
+  const [lesson, setLesson] = useState<LessonPack | null>(null);
   const [loading, setLoading] = useState(true);
 
   const sessionPhotos = useMemo(() => {
@@ -32,6 +35,14 @@ export function ResultPage() {
       });
     }
   }, [sessionId]);
+
+  useEffect(() => {
+    if (!session?.lessonId) {
+      setLesson(null);
+      return;
+    }
+    getLesson(session.lessonId).then((pack) => setLesson(pack ?? null));
+  }, [session?.lessonId]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><LoadingSpinner /></div>;
   if (!session) return (
@@ -69,7 +80,7 @@ export function ResultPage() {
           ))}
         </div>
 
-        <ScoreProofPanel session={session} onUpdated={setSession} />
+        <SolanaScorePanel session={session} lesson={lesson} onUpdated={setSession} />
 
         {sessionPhotos.length > 0 && (
           <SessionPhotoGallery photos={sessionPhotos} sessionId={session.id} />

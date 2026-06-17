@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { useWallet, shortenAddress } from '@/solana/WalletProvider';
 import { buildScoreProofMessage, encodeScoreProof } from '@/solana/scoreProof';
 import { updateResultSession } from '@/storage/resultStorage';
-import { BrowserWalletPicker } from '@/components/wallet/BrowserWalletPicker';
-import type { BrowserWalletId } from '@/solana/web-wallet-browser';
 import type { ResultSession } from '@/storage/types';
 
 interface Props {
@@ -15,39 +13,22 @@ export function ScoreProofPanel({ session, onUpdated }: Props) {
   const {
     address,
     walletLabel,
-    isBrowserWalletMode,
     connecting,
     error,
-    connect,
+    requestConnect,
     disconnect,
     signMessage,
   } = useWallet();
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [signing, setSigning] = useState(false);
   const [signError, setSignError] = useState<string | null>(null);
 
   const proof = session.scoreProof;
   const linkedAddress = session.walletAddress ?? address;
 
-  const handleBrowserConnect = async (id: BrowserWalletId) => {
-    try {
-      await connect(id);
-      setPickerOpen(false);
-    } catch {
+  const handleConnect = () => {
+    requestConnect().catch(() => {
       // error surfaced via wallet context
-    }
-  };
-
-  const handleConnect = async () => {
-    if (isBrowserWalletMode) {
-      setPickerOpen(true);
-      return;
-    }
-    try {
-      await connect();
-    } catch {
-      // error surfaced via wallet context
-    }
+    });
   };
 
   const handleSign = async () => {
@@ -135,16 +116,6 @@ export function ScoreProofPanel({ session, onUpdated }: Props) {
 
       {(error || signError) && (
         <p className="text-xs text-red-400">{signError ?? error}</p>
-      )}
-
-      {pickerOpen && (
-        <BrowserWalletPicker
-          open
-          onClose={() => setPickerOpen(false)}
-          onSelect={handleBrowserConnect}
-          connecting={connecting}
-          error={error}
-        />
       )}
     </div>
   );
