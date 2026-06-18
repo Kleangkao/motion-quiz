@@ -2,12 +2,15 @@ import type { BinaryChoiceVariant } from './binaryChoiceLabel';
 
 interface Props {
   variant: BinaryChoiceVariant;
+  /** Larger badge for Solana Basics TRUE/FALSE/SAFE/RISKY cards. */
+  emphasized?: boolean;
 }
 
 /** 1:1 badge — green check (SAFE/TRUE) or red X (RISKY/FALSE). */
-export function BinaryChoiceIcon({ variant }: Props) {
-  const boxClass =
-    'mx-auto flex aspect-square w-16 shrink-0 items-center justify-center rounded-2xl sm:w-20';
+export function BinaryChoiceIcon({ variant, emphasized = false }: Props) {
+  const boxClass = emphasized
+    ? 'mx-auto flex aspect-square w-20 shrink-0 items-center justify-center rounded-2xl sm:w-24'
+    : 'mx-auto flex aspect-square w-16 shrink-0 items-center justify-center rounded-2xl sm:w-20';
 
   if (variant === 'positive') {
     return (

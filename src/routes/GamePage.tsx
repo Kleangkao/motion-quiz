@@ -20,7 +20,6 @@ import { getSettings } from '@/storage/settingsStorage';
 import { saveResultSession } from '@/storage/resultStorage';
 import { generateId, nowIso } from '@/utils/ids';
 import { TimerBadge } from '@/components/game/TimerBadge';
-import { ScoreBadge } from '@/components/game/ScoreBadge';
 import { ChoiceCard } from '@/components/game/ChoiceCard';
 import { GestureStatus } from '@/components/game/GestureStatus';
 import { FeedbackOverlay } from '@/components/game/FeedbackOverlay';
@@ -41,7 +40,6 @@ import {
   PLAY_FLOW_CARD_RIGHT,
   PLAY_FLOW_GESTURE_STATUS,
   PLAY_FLOW_PROMPT_BAND,
-  PLAY_FLOW_TOP_BAR,
   PLAY_FLOW_VIEWPORT,
   PLAY_FLOW_BAR_BTN,
   PLAY_FLOW_FACING,
@@ -424,19 +422,14 @@ export function GamePage() {
 
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/50 pointer-events-none" />
 
-      <div className={PLAY_FLOW_TOP_BAR}>
-        <div className="flex justify-start">
-          <button
-            onClick={() => { dispatch({ type: 'END' }); stop(); navigate('/play'); }}
-            className={`${PLAY_FLOW_BAR_BTN} text-sm`}
-          >
-            ✕
-          </button>
-        </div>
-        <div className="flex justify-center">
-          <ScoreBadge score={gameState.score} />
-        </div>
-        <div className="flex items-center justify-end gap-2">
+      <div className="play-flow-top-bar absolute top-0 left-0 right-0 safe-top safe-left safe-right z-20 flex items-center justify-between px-3 py-2.5 sm:px-4 sm:py-3">
+        <button
+          onClick={() => { dispatch({ type: 'END' }); stop(); navigate('/play'); }}
+          className={`${PLAY_FLOW_BAR_BTN} text-sm`}
+        >
+          ✕
+        </button>
+        <div className="flex items-center gap-2">
           <TimerBadge remainingMs={gameState.remainingMs} />
           {gameState.status === 'playing' && (
             <button onClick={() => dispatch({ type: 'PAUSE' })} className={PLAY_FLOW_BAR_BTN}>

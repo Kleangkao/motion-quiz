@@ -65,10 +65,6 @@ export const ChoiceCard = forwardRef<HTMLDivElement, Props>(function ChoiceCard(
 
   const body = (
     <>
-      <span className="absolute top-2 left-2 rounded-md bg-black/45 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white/55">
-        {sideLabel}
-      </span>
-
       {choice.image ? (
         <>
           <ChoiceImage imageRef={choice.image} alt={choice.altText ?? choice.label ?? ''} />
@@ -79,9 +75,9 @@ export const ChoiceCard = forwardRef<HTMLDivElement, Props>(function ChoiceCard(
           )}
         </>
       ) : binaryVariant ? (
-        <div className="flex flex-col items-center gap-2">
-          <BinaryChoiceIcon variant={binaryVariant} />
-          <span className="text-center text-xs font-bold uppercase tracking-wide text-white/80">
+        <div className="flex flex-col items-center gap-2.5">
+          <BinaryChoiceIcon variant={binaryVariant} emphasized />
+          <span className="text-center text-lg font-black uppercase tracking-wide text-white sm:text-xl">
             {label}
           </span>
         </div>

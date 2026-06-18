@@ -41,7 +41,7 @@ export const solanaBasicsLesson: LessonPack = {
     'Solana Basics',
     'Wallet safety and Solana fundamentals for Motion Quiz.',
     'solo',
-    7,
+    9,
   ),
   questions: [
     safeRisky(
@@ -85,6 +85,18 @@ export const solanaBasicsLesson: LessonPack = {
       'RPC helps apps talk to Solana',
       true,
       ['solana', 'basics', 'rpc'],
+    ),
+    trueFalse(
+      'solana_basics_q08',
+      'Seeker has a built-in Seed Vault Wallet',
+      true,
+      ['solana', 'basics', 'seeker', 'wallet'],
+    ),
+    trueFalse(
+      'solana_basics_q09',
+      'You need a Seeker phone to start building for Seeker',
+      false,
+      ['solana', 'basics', 'seeker', 'developer'],
     ),
   ],
 };
