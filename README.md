@@ -93,10 +93,10 @@ npm run lint
 
 | ID | Title | Mode |
 |----|-------|------|
-| `solana-basics` | Solana Basics | Solo (9 questions) |
+| `solana-basics` | Solana | Solo (9 questions) |
 | `islanddao-challenge` | IslandDAO Challenge | Challenge (10 questions) |
-| `seeker_mobile_basics` | Solana Mobile & Seeker Basics | Solo (8 questions) |
-| `starter_places_at_school` | Places at School | Solo (legacy demo) |
+
+Retired (hidden from Play, kept in IndexedDB if already installed): `starter_places_at_school`, `seeker_mobile_basics`.
 
 Built-in packs are added **idempotently by ID** on app load: missing packs are inserted, and existing local lessons (including user edits) are never overwritten.
 

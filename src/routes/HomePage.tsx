@@ -10,6 +10,7 @@ import {
 } from '@/storage/seedLessons';
 import type { LessonPack } from '@/storage/types';
 import { WalletHeaderButton } from '@/components/wallet/WalletHeaderButton';
+import { TopicPackIcon } from '@/components/play/TopicPackIcon';
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -74,9 +75,12 @@ export function HomePage() {
                 onClick={() => startPack(lesson)}
                 className="glass-card p-4 text-left flex items-center gap-3 active:scale-[0.99] transition hover:bg-white/15"
               >
-                <span className="text-2xl">
-                  {lesson.id === 'islanddao-challenge' ? '🏝️' : '◎'}
-                </span>
+                <TopicPackIcon
+                  packId={lesson.id}
+                  icon={lesson.icon}
+                  title={lesson.title}
+                  size="sm"
+                />
                 <div className="font-bold text-white">{lesson.title}</div>
               </button>
             ))}

@@ -38,7 +38,7 @@ function trueFalse(
 export const solanaBasicsLesson: LessonPack = {
   ...basePack(
     'solana-basics',
-    'Solana Basics',
+    'Solana',
     'Wallet safety and Solana fundamentals for Motion Quiz.',
     'solo',
     9,
@@ -112,4 +112,12 @@ export function solanaBasicsBuiltinContentMatches(
   const ap = solanaBasicsQuestionPrompts(a);
   const bp = solanaBasicsQuestionPrompts(b);
   return ap.length === bp.length && ap.every((prompt, i) => prompt === bp[i]);
+}
+
+export function solanaBasicsBuiltinMatches(existing: LessonPack, canonical: LessonPack): boolean {
+  return (
+    solanaBasicsBuiltinContentMatches(existing, canonical) &&
+    existing.title === canonical.title &&
+    existing.description === canonical.description
+  );
 }

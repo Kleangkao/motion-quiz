@@ -47,6 +47,7 @@ export function CreateTopicPage() {
   const isEditing = Boolean(lessonId);
 
   const [title, setTitle] = useState('');
+  const [topicIcon, setTopicIcon] = useState<LessonImageRef | undefined>();
   const [questions, setQuestions] = useState<QuestionDraft[]>([emptyQuestion(), emptyQuestion()]);
   const [loading, setLoading] = useState(isEditing);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -68,6 +69,7 @@ export function CreateTopicPage() {
           return;
         }
         setTitle(lesson.title);
+        setTopicIcon(lesson.icon);
         setQuestions(
           lesson.questions.length >= MIN_QUESTIONS
             ? lesson.questions.map(questionDraftFromQuiz)
@@ -142,6 +144,7 @@ export function CreateTopicPage() {
           title: trimmedTitle,
           durationSeconds,
           questions: builtQuestions,
+          icon: topicIcon,
         });
       } else {
         await createLesson({
@@ -152,6 +155,7 @@ export function CreateTopicPage() {
           allowTouchFallback: true,
           packKind: 'solo',
           questions: builtQuestions,
+          ...(topicIcon ? { icon: topicIcon } : {}),
         });
       }
       navigate('/play');
@@ -196,6 +200,18 @@ export function CreateTopicPage() {
             className="w-full rounded-xl bg-white/10 px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             placeholder="e.g. Solana Workshop Warm-up"
           />
+        </div>
+
+        <div>
+          <ImagePicker
+            label="Topic icon (optional)"
+            value={topicIcon}
+            onChange={setTopicIcon}
+            objectFit="contain"
+          />
+          <p className="mt-2 text-xs text-white/45">
+            Shown on Play and Home, like the Solana and Island DAO logos.
+          </p>
         </div>
 
         <div className="space-y-4">

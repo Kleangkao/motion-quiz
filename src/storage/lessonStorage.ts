@@ -32,6 +32,14 @@ export async function updateLesson(
   id: string,
   patch: Partial<Omit<LessonPack, 'id' | 'schemaVersion' | 'createdAt'>>,
 ): Promise<void> {
+  if ('icon' in patch && patch.icon === undefined) {
+    const existing = await getLesson(id);
+    if (!existing) throw new AppError('Lesson not found', 'NOT_FOUND');
+    const next: LessonPack = { ...existing, ...patch, updatedAt: nowIso() };
+    delete next.icon;
+    await db.lessons.put(next);
+    return;
+  }
   await db.lessons.update(id, { ...patch, updatedAt: nowIso() });
 }
 

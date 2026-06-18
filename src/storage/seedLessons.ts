@@ -8,7 +8,7 @@ import {
 } from '@/data/islanddaoChallengeLesson';
 import {
   solanaBasicsLesson,
-  solanaBasicsBuiltinContentMatches,
+  solanaBasicsBuiltinMatches,
 } from '@/data/solanaBasicsLesson';
 import { getLesson } from './lessonStorage';
 import { nowIso } from '@/utils/ids';
@@ -46,7 +46,7 @@ const SOLANA_BASICS_ID = 'solana-basics';
 async function syncSolanaBasicsBuiltin(): Promise<boolean> {
   const existing = await getLesson(SOLANA_BASICS_ID);
   if (!existing) return false;
-  if (solanaBasicsBuiltinContentMatches(existing, solanaBasicsLesson)) return false;
+  if (solanaBasicsBuiltinMatches(existing, solanaBasicsLesson)) return false;
 
   await db.lessons.put({
     ...solanaBasicsLesson,
@@ -96,7 +96,6 @@ export function isSoloPack(lesson: { packKind?: string; id: string }): boolean {
 export const FEATURED_PLAY_PACK_IDS = [
   'solana-basics',
   'islanddao-challenge',
-  'seeker_mobile_basics',
 ] as const;
 
 export type FeaturedPlayPackId = (typeof FEATURED_PLAY_PACK_IDS)[number];
@@ -106,7 +105,10 @@ export function isFeaturedPlayPack(lesson: { id: string }): boolean {
 }
 
 /** Legacy built-in packs hidden from Play/Home but kept in IndexedDB if already installed. */
-export const RETIRED_BUILTIN_PACK_IDS = ['starter_places_at_school'] as const;
+export const RETIRED_BUILTIN_PACK_IDS = [
+  'starter_places_at_school',
+  'seeker_mobile_basics',
+] as const;
 
 export function isRetiredBuiltinPack(lesson: { id: string }): boolean {
   return (RETIRED_BUILTIN_PACK_IDS as readonly string[]).includes(lesson.id);

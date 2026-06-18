@@ -8,9 +8,16 @@ interface Props {
   value?: LessonImageRef;
   onChange: (ref: LessonImageRef | undefined) => void;
   label?: string;
+  /** cover for answer photos; contain for square logos / icons */
+  objectFit?: 'cover' | 'contain';
 }
 
-export function ImagePicker({ value, onChange, label = 'Image' }: Props) {
+export function ImagePicker({
+  value,
+  onChange,
+  label = 'Image',
+  objectFit = 'cover',
+}: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -63,7 +70,11 @@ export function ImagePicker({ value, onChange, label = 'Image' }: Props) {
           </div>
         )}
         {preview ? (
-          <img src={preview} alt="Choice" className="h-full w-full object-cover" />
+          <img
+            src={preview}
+            alt=""
+            className={`h-full w-full ${objectFit === 'contain' ? 'object-contain p-1' : 'object-cover'}`}
+          />
         ) : (
           <span className="text-3xl text-white/30">+</span>
         )}

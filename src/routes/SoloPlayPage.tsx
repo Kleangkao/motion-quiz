@@ -11,13 +11,7 @@ import {
 import type { LessonPack } from '@/storage/types';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-
-function packEmoji(lesson: LessonPack): string {
-  if (lesson.id === 'islanddao-challenge') return '🏝️';
-  if (lesson.id === 'seeker_mobile_basics') return '📱';
-  if (lesson.id === 'solana-basics') return '◎';
-  return '🎯';
-}
+import { TopicPackIcon } from '@/components/play/TopicPackIcon';
 
 function TopicCard({
   lesson,
@@ -36,7 +30,7 @@ function TopicCard({
         onClick={onPlay}
         className="flex flex-1 min-w-0 items-start gap-3 text-left transition active:scale-[0.99]"
       >
-        <span className="text-3xl">{packEmoji(lesson)}</span>
+        <TopicPackIcon packId={lesson.id} icon={lesson.icon} title={lesson.title} size="md" />
         <div className="min-w-0">
           <h2 className="font-bold text-white text-lg truncate">{lesson.title}</h2>
           {lesson.description && (

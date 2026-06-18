@@ -49,6 +49,8 @@ export interface LessonPack {
   packKind?: PackKind;
   /** Stable id for challenge result grouping */
   challengeId?: string;
+  /** Optional logo shown on Play / Home topic lists */
+  icon?: LessonImageRef;
   createdAt: string;
   updatedAt: string;
   questions: QuizQuestion[];

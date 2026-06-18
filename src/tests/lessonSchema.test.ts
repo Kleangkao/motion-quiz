@@ -38,4 +38,13 @@ describe('lessonPackSchema', () => {
     const result = lessonPackSchema.safeParse(bad);
     expect(result.success).toBe(false);
   });
+
+  it('accepts optional topic icon', () => {
+    const withIcon = {
+      ...placesAtSchoolLesson,
+      icon: { kind: 'dataUrl' as const, value: 'data:image/png;base64,abc' },
+    };
+    const result = lessonPackSchema.safeParse(withIcon);
+    expect(result.success).toBe(true);
+  });
 });

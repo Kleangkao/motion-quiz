@@ -30,29 +30,24 @@ describe('ensureStarterLessons', () => {
 
   it('inserts only missing built-in packs by stable ID', async () => {
     getLesson.mockImplementation(async (id: string) =>
-      id === 'seeker_mobile_basics' ? STARTER_LESSONS.find((l) => l.id === id) : undefined,
+      id === 'solana-basics' ? STARTER_LESSONS.find((l) => l.id === id) : undefined,
     );
 
     const result = await ensureStarterLessons();
 
     expect(result.insertedIds).toEqual(
-      BUILTIN_LESSON_IDS.filter((id) => id !== 'seeker_mobile_basics'),
+      BUILTIN_LESSON_IDS.filter((id) => id !== 'solana-basics'),
     );
     expect(result.updatedIds).toEqual([]);
     expect(put).toHaveBeenCalledTimes(BUILTIN_LESSON_IDS.length - 1);
     expect(put).not.toHaveBeenCalledWith(
-      expect.objectContaining({ id: 'seeker_mobile_basics' }),
+      expect.objectContaining({ id: 'solana-basics' }),
     );
   });
 
   it('does not overwrite solana-basics when canonical content still matches', async () => {
-    const userEdited = {
-      ...STARTER_LESSONS.find((l) => l.id === 'solana-basics')!,
-      title: 'My Custom Solana Basics',
-      description: 'Edited locally',
-    };
     getLesson.mockImplementation(async (id: string) =>
-      id === 'solana-basics' ? userEdited : undefined,
+      id === 'solana-basics' ? STARTER_LESSONS.find((l) => l.id === 'solana-basics') : undefined,
     );
 
     const result = await ensureStarterLessons();
@@ -60,6 +55,28 @@ describe('ensureStarterLessons', () => {
     expect(result.insertedIds).not.toContain('solana-basics');
     expect(result.updatedIds).toEqual([]);
     expect(put).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'solana-basics' }));
+  });
+
+  it('syncs solana-basics when IndexedDB still has old built-in title', async () => {
+    const oldTitle = {
+      ...solanaBasicsLesson,
+      title: 'Solana Basics',
+    };
+    getLesson.mockImplementation(async (id: string) => {
+      if (id === 'solana-basics') return oldTitle;
+      return STARTER_LESSONS.find((lesson) => lesson.id === id);
+    });
+
+    const result = await ensureStarterLessons();
+
+    expect(result.updatedIds).toEqual(['solana-basics']);
+    expect(put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'solana-basics',
+        title: 'Solana',
+        createdAt: oldTitle.createdAt,
+      }),
+    );
   });
 
   it('syncs solana-basics when IndexedDB still has old built-in questions', async () => {

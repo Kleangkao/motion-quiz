@@ -37,6 +37,7 @@ export const lessonPackSchema = z.object({
   allowTouchFallback: z.boolean(),
   packKind: z.enum(['solo', 'challenge']).optional(),
   challengeId: z.string().optional(),
+  icon: lessonImageRefSchema.optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
   questions: z.array(quizQuestionSchema).min(1),
