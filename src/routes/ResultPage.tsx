@@ -7,7 +7,6 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { ErrorMessage } from '@/components/common/ErrorMessage';
 import { SolanaScorePanel } from '@/components/result/SolanaScorePanel';
 import { GameMomentPanel } from '@/components/result/GameMomentPanel';
-import { SessionPhotoGallery } from '@/components/result/SessionPhotoGallery';
 import { PhotoMomentNftPanel } from '@/components/result/PhotoMomentNftPanel';
 import { getSessionPhotos } from '@/game/sessionPhotoCache';
 import { getLesson } from '@/storage/lessonStorage';
@@ -94,13 +93,8 @@ export function ResultPage() {
         <SolanaScorePanel
           session={session}
           lesson={lesson}
-          onUpdated={setSession}
           onScoreRecorded={setRecordedScore}
         />
-
-        {sessionPhotos.length > 0 && (
-          <SessionPhotoGallery photos={sessionPhotos} sessionId={session.id} />
-        )}
 
         <PhotoMomentNftPanel
           key={session.id}

@@ -17,19 +17,16 @@ import {
   saveRecordedScore,
   type RecordedScoreReceipt,
 } from '@/storage/scoreRecordStorage';
-import { buildScoreProofMessage, encodeScoreProof } from '@/solana/scoreProof';
-import { updateResultSession } from '@/storage/resultStorage';
 
 interface Props {
   session: ResultSession;
   lesson: LessonPack | null;
-  onUpdated: (session: ResultSession) => void;
   onScoreRecorded?: (record: RecordedScoreReceipt) => void;
 }
 
 type RecordState = 'idle' | 'recording' | 'recorded' | 'error';
 
-export function SolanaScorePanel({ session, lesson, onUpdated, onScoreRecorded }: Props) {
+export function SolanaScorePanel({ session, lesson, onScoreRecorded }: Props) {
   const {
     address,
     connecting,
@@ -37,19 +34,15 @@ export function SolanaScorePanel({ session, lesson, onUpdated, onScoreRecorded }
     supportsTransactions,
     requestConnect,
     sendTransaction,
-    signMessage,
   } = useWallet();
 
   const [recordState, setRecordState] = useState<RecordState>('idle');
   const [recordError, setRecordError] = useState<string | null>(null);
   const [txSignature, setTxSignature] = useState<string | null>(null);
-  const [signing, setSigning] = useState(false);
-  const [signError, setSignError] = useState<string | null>(null);
   const cluster = getSolanaCluster();
 
   const eligible = isLeaderboardEligiblePack(session.lessonId);
   const configured = isSupabaseConfigured();
-  const proof = session.scoreProof;
 
   useEffect(() => {
     const saved = getRecordedScore(session.id);
@@ -107,26 +100,6 @@ export function SolanaScorePanel({ session, lesson, onUpdated, onScoreRecorded }
     } catch (error) {
       setRecordError(error instanceof Error ? error.message : String(error));
       setRecordState('error');
-    }
-  };
-
-  const handleSignProof = async () => {
-    if (!address) return;
-    setSigning(true);
-    setSignError(null);
-    try {
-      const message = buildScoreProofMessage({ ...session, walletAddress: address });
-      const signature = await signMessage(message);
-      const scoreProof = encodeScoreProof(message, signature, address);
-      await updateResultSession(session.id, {
-        walletAddress: address,
-        scoreProof,
-      });
-      onUpdated({ ...session, walletAddress: address, scoreProof });
-    } catch (e) {
-      setSignError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setSigning(false);
     }
   };
 
@@ -225,35 +198,6 @@ export function SolanaScorePanel({ session, lesson, onUpdated, onScoreRecorded }
 
       {(walletError || recordError) && (
         <p className="text-xs text-red-400">{recordError ?? walletError}</p>
-      )}
-
-      {address && (
-        <div className="border-t border-white/10 pt-3 space-y-2">
-          <p className="text-[10px] uppercase tracking-wide text-white/35">Advanced</p>
-          {proof ? (
-            <div className="rounded-lg bg-white/5 border border-white/10 px-3 py-2 space-y-1">
-              <p className="text-xs text-green-400/90">Local score proof signed</p>
-              <p className="text-[10px] text-white/40 font-mono break-all">
-                {proof.signatureBase58.slice(0, 32)}…
-              </p>
-            </div>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={handleSignProof}
-                disabled={signing || connecting}
-                className="btn btn-secondary btn-sm w-full text-xs"
-              >
-                {signing ? 'Signing…' : 'Sign local score proof'}
-              </button>
-              <p className="text-[10px] text-white/35 leading-relaxed">
-                Off-chain message only. Does not record on Solana or move funds.
-              </p>
-            </>
-          )}
-          {signError && <p className="text-xs text-red-400">{signError}</p>}
-        </div>
       )}
     </div>
   );

@@ -66,10 +66,6 @@ vi.mock('@/components/layout/PageLayout', () => ({
   PageLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
-vi.mock('@/components/result/SessionPhotoGallery', () => ({
-  SessionPhotoGallery: () => null,
-}));
-
 vi.mock('@/components/result/GameMomentPanel', () => ({
   GameMomentPanel: () => null,
 }));

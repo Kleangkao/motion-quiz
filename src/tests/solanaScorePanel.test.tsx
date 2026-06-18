@@ -67,7 +67,6 @@ describe('SolanaScorePanel', () => {
       <SolanaScorePanel
         session={baseSession}
         lesson={lessonFixture}
-        onUpdated={vi.fn()}
       />,
     );
 
@@ -81,7 +80,6 @@ describe('SolanaScorePanel', () => {
       <SolanaScorePanel
         session={{ ...baseSession, lessonId: 'my-custom-topic' }}
         lesson={{ ...lessonFixture, id: 'my-custom-topic', title: 'Custom' }}
-        onUpdated={vi.fn()}
       />,
     );
 
@@ -116,7 +114,6 @@ describe('SolanaScorePanel connected states', () => {
       <Panel
         session={baseSession}
         lesson={lessonFixture}
-        onUpdated={vi.fn()}
       />,
     );
 

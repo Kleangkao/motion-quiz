@@ -127,9 +127,9 @@
       padding-top: 2.75rem;
     }
 
-    .play-flow-viewport.play-flow-calibration .play-flow-calibration-hand > div:first-child {
+    .play-flow-viewport.play-flow-calibration .play-flow-calibration-hand {
       height: 4.5rem;
-      width: 3.5rem;
+      width: 4.5rem;
     }
 
     .play-flow-viewport.play-flow-calibration .play-flow-calibration-hand span {

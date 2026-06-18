@@ -47,7 +47,6 @@ import {
   PLAY_FLOW_FACING,
 } from '@/camera/playFlowLayout';
 import { RotateToLandscapePrompt } from '@/components/game/RotateToLandscapePrompt';
-import { PlayFlowFullscreenButton } from '@/components/game/PlayFlowFullscreenButton';
 
 const FEEDBACK_DURATION_MS = 550;
 const CORRECT_ANSWER_PAUSE_MS = 2000;
@@ -84,7 +83,6 @@ export function GamePage() {
   const [appSettings, setAppSettings] = useState<AppSettings | null>(null);
   const [questionResults, setQuestionResults] = useState<QuestionResult[]>([]);
   const [resultSaved, setResultSaved] = useState(false);
-  const [debugMode, setDebugMode] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [videoReady, setVideoReady] = useState(false);
@@ -164,11 +162,10 @@ export function GamePage() {
 
         setLesson(loadedLesson);
         setAppSettings(settings);
-        setDebugMode(settings.showDebugOverlay);
 
         const questions = buildQuestionQueue(
           loadedLesson.questions,
-          loadedLesson.questionOrder,
+          'random',
           loadedLesson.durationSeconds,
         );
 
@@ -427,7 +424,6 @@ export function GamePage() {
 
       <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/50 pointer-events-none" />
 
-      {/* Top bar — 3-column grid keeps timer visually centered */}
       <div className={PLAY_FLOW_TOP_BAR}>
         <div className="flex justify-start">
           <button
@@ -438,15 +434,15 @@ export function GamePage() {
           </button>
         </div>
         <div className="flex justify-center">
-          <TimerBadge remainingMs={gameState.remainingMs} />
+          <ScoreBadge score={gameState.score} />
         </div>
         <div className="flex items-center justify-end gap-2">
+          <TimerBadge remainingMs={gameState.remainingMs} />
           {gameState.status === 'playing' && (
             <button onClick={() => dispatch({ type: 'PAUSE' })} className={PLAY_FLOW_BAR_BTN}>
               ⏸
             </button>
           )}
-          <ScoreBadge score={gameState.score} />
           {sessionPhotos.length > 0 && (
             <span className="rounded-xl bg-pink-600/80 px-2 py-1 text-xs font-bold text-white" title="Photo moments this round">
               📸 {sessionPhotos.length}/3
@@ -555,7 +551,7 @@ export function GamePage() {
         </div>
       )}
 
-      {debugMode && !isPhotoCapture && (
+      {appSettings?.showDebugOverlay && !isPhotoCapture && (
         <DebugOverlay
           diagnostics={diagnostics}
           mirrored={isMirrored}
@@ -567,18 +563,9 @@ export function GamePage() {
         />
       )}
 
-      <button
-        onClick={() => setDebugMode((d) => !d)}
-        className="absolute bottom-2 right-2 z-50 rounded-xl bg-black/60 px-2 py-1 text-xs text-white/50 hover:text-white"
-      >
-        {debugMode ? 'Debug Off' : 'Debug'}
-      </button>
-
       {showRotatePrompt && gameState.status !== 'finished' && gameState.status !== 'photo-capture' && (
         <RotateToLandscapePrompt />
       )}
-
-      <PlayFlowFullscreenButton containerRef={containerRef} />
 
       {gameState.status === 'finished' && (
         <ResultModal

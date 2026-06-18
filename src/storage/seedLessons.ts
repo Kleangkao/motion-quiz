@@ -6,6 +6,10 @@ import {
   islanddaoChallengeLesson,
   islandDaoBuiltinContentMatches,
 } from '@/data/islanddaoChallengeLesson';
+import {
+  solanaBasicsLesson,
+  solanaBasicsBuiltinContentMatches,
+} from '@/data/solanaBasicsLesson';
 import { getLesson } from './lessonStorage';
 import { nowIso } from '@/utils/ids';
 
@@ -37,11 +41,26 @@ async function syncIslandDaoChallengeBuiltin(): Promise<boolean> {
   return true;
 }
 
+const SOLANA_BASICS_ID = 'solana-basics';
+
+async function syncSolanaBasicsBuiltin(): Promise<boolean> {
+  const existing = await getLesson(SOLANA_BASICS_ID);
+  if (!existing) return false;
+  if (solanaBasicsBuiltinContentMatches(existing, solanaBasicsLesson)) return false;
+
+  await db.lessons.put({
+    ...solanaBasicsLesson,
+    createdAt: existing.createdAt,
+    updatedAt: nowIso(),
+  });
+  return true;
+}
+
 /**
  * Ensure every built-in quiz pack exists in IndexedDB.
  * Inserts missing packs by stable ID only — never overwrites other existing rows
  * (including user-edited packs that share a built-in ID).
- * IslandDAO Challenge is the exception: synced when built-in question content changes.
+ * IslandDAO Challenge and Solana Basics sync when built-in question content changes.
  */
 export async function ensureStarterLessons(): Promise<StarterLessonMigrationResult> {
   const insertedIds: string[] = [];
@@ -57,6 +76,9 @@ export async function ensureStarterLessons(): Promise<StarterLessonMigrationResu
   const updatedIds: string[] = [];
   if (await syncIslandDaoChallengeBuiltin()) {
     updatedIds.push(ISLANDDAO_CHALLENGE_ID);
+  }
+  if (await syncSolanaBasicsBuiltin()) {
+    updatedIds.push(SOLANA_BASICS_ID);
   }
 
   return { insertedIds, updatedIds };

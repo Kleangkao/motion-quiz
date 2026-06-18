@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BUILTIN_LESSON_IDS, STARTER_LESSONS } from '@/data/starterLessons';
 import { islanddaoChallengeLesson } from '@/data/islanddaoChallengeLesson';
+import { solanaBasicsLesson } from '@/data/solanaBasicsLesson';
 
 const { put, getLesson } = vi.hoisted(() => ({
   put: vi.fn(),
@@ -44,9 +45,9 @@ describe('ensureStarterLessons', () => {
     );
   });
 
-  it('does not overwrite existing built-in or user-edited packs except IslandDAO content sync', async () => {
+  it('does not overwrite solana-basics when canonical content still matches', async () => {
     const userEdited = {
-      ...STARTER_LESSONS[0],
+      ...STARTER_LESSONS.find((l) => l.id === 'solana-basics')!,
       title: 'My Custom Solana Basics',
       description: 'Edited locally',
     };
@@ -59,6 +60,34 @@ describe('ensureStarterLessons', () => {
     expect(result.insertedIds).not.toContain('solana-basics');
     expect(result.updatedIds).toEqual([]);
     expect(put).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'solana-basics' }));
+  });
+
+  it('syncs solana-basics when IndexedDB still has old built-in questions', async () => {
+    const oldSolana = {
+      ...solanaBasicsLesson,
+      questions: [
+        {
+          ...solanaBasicsLesson.questions[0],
+          id: 'solana_basics_old',
+          prompt: 'Old Solana question that should be replaced',
+        },
+      ],
+    };
+    getLesson.mockImplementation(async (id: string) => {
+      if (id === 'solana-basics') return oldSolana;
+      return STARTER_LESSONS.find((lesson) => lesson.id === id);
+    });
+
+    const result = await ensureStarterLessons();
+
+    expect(result.updatedIds).toEqual(['solana-basics']);
+    expect(put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'solana-basics',
+        questions: solanaBasicsLesson.questions,
+        createdAt: oldSolana.createdAt,
+      }),
+    );
   });
 
   it('is idempotent on repeated runs', async () => {

@@ -2,6 +2,8 @@ import { forwardRef, useEffect, useState } from 'react';
 import type { QuizChoice, LessonImageRef } from '@/storage/types';
 import { getImageUrl } from '@/storage/imageStorage';
 import { HoldProgressBar } from '@/components/game/HoldProgressBar';
+import { BinaryChoiceIcon } from '@/components/game/BinaryChoiceIcon';
+import { getBinaryChoiceVariant } from '@/components/game/binaryChoiceLabel';
 
 interface Props {
   choice: QuizChoice;
@@ -49,6 +51,7 @@ export const ChoiceCard = forwardRef<HTMLDivElement, Props>(function ChoiceCard(
   onTouch,
 }, ref) {
   const label = choice.label ?? choice.altText ?? '';
+  const binaryVariant = label ? getBinaryChoiceVariant(label) : null;
   const sideLabel = side === 'left' ? 'Left' : 'Right';
   const showHold = isCandidate && holdProgress > 0;
 
@@ -75,6 +78,13 @@ export const ChoiceCard = forwardRef<HTMLDivElement, Props>(function ChoiceCard(
             </span>
           )}
         </>
+      ) : binaryVariant ? (
+        <div className="flex flex-col items-center gap-2">
+          <BinaryChoiceIcon variant={binaryVariant} />
+          <span className="text-center text-xs font-bold uppercase tracking-wide text-white/80">
+            {label}
+          </span>
+        </div>
       ) : label ? (
         <span className="mt-3 px-1 text-center text-[15px] font-semibold leading-snug text-white line-clamp-5 [text-wrap:balance]">
           {label}

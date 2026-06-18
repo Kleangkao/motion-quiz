@@ -16,7 +16,6 @@ import { ErrorMessage } from '@/components/common/ErrorMessage';
 import { usePlayFlowLandscape } from '@/camera/usePlayFlowLandscape';
 import { PLAY_FLOW_TOP_BAR, PLAY_FLOW_VIEWPORT, PLAY_FLOW_BAR_BTN, PLAY_FLOW_FACING } from '@/camera/playFlowLayout';
 import { RotateToLandscapePrompt } from '@/components/game/RotateToLandscapePrompt';
-import { PlayFlowFullscreenButton } from '@/components/game/PlayFlowFullscreenButton';
 
 const SAMPLE_DURATION_MS = 2000;
 const DONE_AUTO_ADVANCE_MS = 500;
@@ -138,9 +137,7 @@ export function CalibrationPage() {
           </button>
         </div>
         <h1 className="text-center text-sm font-bold text-white sm:text-base">Calibration</h1>
-        <div className="flex justify-end">
-          <PlayFlowFullscreenButton containerRef={containerRef} variant="bar" />
-        </div>
+        <div aria-hidden />
       </div>
 
       {!settings ? (
@@ -150,12 +147,12 @@ export function CalibrationPage() {
       ) : (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-between pt-12 play-flow-calibration-footer play-flow-calibration-body">
           <div className="flex flex-1 flex-col items-center justify-center pointer-events-none min-h-0 w-full max-w-md">
-            <div className="relative shrink-0 play-flow-calibration-hand">
-              <div className="flex h-20 w-16 items-center justify-center rounded-full border-4 border-dashed border-white/30 sm:h-28 sm:w-20">
+            <div className="relative h-20 w-20 shrink-0 sm:h-28 sm:w-28 play-flow-calibration-hand">
+              <div className="flex h-full w-full items-center justify-center rounded-full border-4 border-dashed border-white/30">
                 <span className="text-3xl opacity-80 sm:text-4xl">👋</span>
               </div>
               {step === 'sampling' && (
-                <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 100 100">
+                <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
                   <circle cx="50" cy="50" r="46" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="4" />
                   <circle
                     cx="50" cy="50" r="46" fill="none" stroke="#818cf8" strokeWidth="4"

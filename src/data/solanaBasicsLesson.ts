@@ -1,112 +1,103 @@
-import type { LessonPack } from '@/storage/types';
-import { alternateSides, basePack, twoChoice } from './quizPackHelpers';
+import type { LessonPack, QuizQuestion } from '@/storage/types';
+import { basePack } from './quizPackHelpers';
 
-const sides = alternateSides(12);
+function safeRisky(
+  id: string,
+  prompt: string,
+  answer: 'SAFE' | 'RISKY',
+  tags?: string[],
+): QuizQuestion {
+  return {
+    id,
+    prompt,
+    left: { id: `${id}_safe`, label: 'SAFE' },
+    right: { id: `${id}_risky`, label: 'RISKY' },
+    correctSide: answer === 'SAFE' ? 'left' : 'right',
+    difficulty: 'easy',
+    tags,
+  };
+}
+
+function trueFalse(
+  id: string,
+  prompt: string,
+  answer: boolean,
+  tags?: string[],
+): QuizQuestion {
+  return {
+    id,
+    prompt,
+    left: { id: `${id}_true`, label: 'TRUE' },
+    right: { id: `${id}_false`, label: 'FALSE' },
+    correctSide: answer ? 'left' : 'right',
+    difficulty: 'easy',
+    tags,
+  };
+}
 
 export const solanaBasicsLesson: LessonPack = {
   ...basePack(
     'solana-basics',
     'Solana Basics',
-    'A beginner-friendly Solana and wallet safety quiz for Motion Quiz.',
+    'Wallet safety and Solana fundamentals for Motion Quiz.',
     'solo',
-    12,
+    7,
   ),
   questions: [
-    twoChoice(
+    safeRisky(
       'solana_basics_q01',
-      'Who is the founder most closely associated with creating Solana?',
-      'Anatoly Yakovenko',
-      'Vitalik Buterin',
-      sides[0],
-      ['solana', 'basics', 'history'],
+      'Sharing your seed phrase',
+      'RISKY',
+      ['solana', 'basics', 'safety', 'wallet'],
     ),
-    twoChoice(
+    safeRisky(
       'solana_basics_q02',
-      'What concept is Solana best known for introducing to help order events efficiently?',
-      'Proof of History',
-      'Proof of Burn',
-      sides[1],
-      ['solana', 'basics', 'consensus'],
+      'Sharing your wallet address',
+      'SAFE',
+      ['solana', 'basics', 'wallet'],
     ),
-    twoChoice(
+    trueFalse(
       'solana_basics_q03',
-      'What is SOL used for on Solana?',
-      'Paying network fees and participating in staking',
-      'Guaranteeing profits',
-      sides[2],
-      ['solana', 'basics', 'sol'],
+      'Devnet SOL is real money',
+      false,
+      ['solana', 'basics', 'devnet'],
     ),
-    twoChoice(
+    trueFalse(
       'solana_basics_q04',
-      'What does signing a message usually prove?',
-      'That you control a wallet address',
-      'That you sent SOL',
-      sides[3],
-      ['solana', 'basics', 'wallet'],
+      'Mainnet is the real network',
+      true,
+      ['solana', 'basics', 'mainnet'],
     ),
-    twoChoice(
+    trueFalse(
       'solana_basics_q05',
-      'What should you do before approving a wallet prompt?',
-      'Read what the wallet is asking you to sign',
-      'Approve instantly',
-      sides[4],
-      ['solana', 'basics', 'safety'],
+      'Connecting wallet instantly sends money',
+      false,
+      ['solana', 'basics', 'wallet', 'safety'],
     ),
-    twoChoice(
+    safeRisky(
       'solana_basics_q06',
-      'What does Mobile Wallet Adapter help with?',
-      'Connecting mobile dApps to wallets without exposing private keys',
-      'Mining SOL on a phone',
-      sides[5],
-      ['solana', 'basics', 'mobile', 'mwa'],
+      'Reading before signing',
+      'SAFE',
+      ['solana', 'basics', 'safety', 'wallet'],
     ),
-    twoChoice(
+    trueFalse(
       'solana_basics_q07',
-      'What is Seed Vault at a high level?',
-      'A secure key layer for Solana Mobile devices',
-      'A token price tracker',
-      sides[6],
-      ['solana', 'basics', 'mobile', 'seed-vault'],
-    ),
-    twoChoice(
-      'solana_basics_q08',
-      'What is the Solana dApp Store?',
-      'A mobile app store for crypto-friendly dApps',
-      'A block explorer only',
-      sides[7],
-      ['solana', 'basics', 'mobile', 'dapp-store'],
-    ),
-    twoChoice(
-      'solana_basics_q09',
-      'SOL reached an all-time high of roughly how much in January 2025?',
-      'Around $293–$294',
-      'Around $30',
-      sides[8],
-      ['solana', 'basics', 'market'],
-    ),
-    twoChoice(
-      'solana_basics_q10',
-      'In this MVP, what should a signed score proof never do?',
-      'Send an on-chain transaction',
-      'Include a timestamp',
-      sides[9],
-      ['solana', 'basics', 'score-proof'],
-    ),
-    twoChoice(
-      'solana_basics_q11',
-      'Why is local-first Challenge Mode useful for workshops?',
-      'Players can import and play challenges without a live backend',
-      'It forces token rewards',
-      sides[10],
-      ['solana', 'basics', 'challenge-mode'],
-    ),
-    twoChoice(
-      'solana_basics_q12',
-      'What is a wallet public address?',
-      'A public identifier for receiving or verifying wallet activity',
-      'A seed phrase',
-      sides[11],
-      ['solana', 'basics', 'wallet'],
+      'RPC helps apps talk to Solana',
+      true,
+      ['solana', 'basics', 'rpc'],
     ),
   ],
 };
+
+export function solanaBasicsQuestionPrompts(lesson: Pick<LessonPack, 'questions'>): string[] {
+  return lesson.questions.map((q) => q.prompt);
+}
+
+export function solanaBasicsBuiltinContentMatches(
+  a: Pick<LessonPack, 'questions'>,
+  b: Pick<LessonPack, 'questions'>,
+): boolean {
+  const ap = solanaBasicsQuestionPrompts(a);
+  const bp = solanaBasicsQuestionPrompts(b);
+  return ap.length === bp.length && ap.every((prompt, i) => prompt === bp[i]);
+}

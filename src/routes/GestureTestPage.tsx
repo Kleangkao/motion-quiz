@@ -27,7 +27,6 @@ import {
   PLAY_FLOW_FACING,
 } from '@/camera/playFlowLayout';
 import { RotateToLandscapePrompt } from '@/components/game/RotateToLandscapePrompt';
-import { PlayFlowFullscreenButton } from '@/components/game/PlayFlowFullscreenButton';
 import { HoldProgressBar } from '@/components/game/HoldProgressBar';
 
 type TestStep = 'point-left' | 'left-done' | 'point-right' | 'right-done';
@@ -88,7 +87,6 @@ export function GestureTestPage() {
   const [step, setStep] = useState<TestStep>('point-left');
   const [leftConfirmed, setLeftConfirmed] = useState(false);
   const [rightConfirmed, setRightConfirmed] = useState(false);
-  const [debugMode, setDebugMode] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -141,10 +139,7 @@ export function GestureTestPage() {
   });
 
   useEffect(() => {
-    getSettings().then((s) => {
-      setSettings(s);
-      setDebugMode(s.showDebugOverlay);
-    });
+    getSettings().then(setSettings);
     return () => stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -253,11 +248,7 @@ export function GestureTestPage() {
           </button>
         </div>
         <h1 className="text-center text-sm font-bold text-white sm:text-base">Gesture Test</h1>
-        <div className="flex justify-end">
-          <button onClick={() => setDebugMode((d) => !d)} className={`${PLAY_FLOW_BAR_BTN} text-xs`}>
-            {debugMode ? 'Debug Off' : 'Debug'}
-          </button>
-        </div>
+        <div aria-hidden />
       </div>
 
       {cameraState.status === 'requesting' && (
@@ -343,9 +334,7 @@ export function GestureTestPage() {
 
       {showRotatePrompt && <RotateToLandscapePrompt />}
 
-      <PlayFlowFullscreenButton containerRef={containerRef} />
-
-      {debugMode && (
+      {settings?.showDebugOverlay && (
         <DebugOverlay
           diagnostics={diagnostics}
           mirrored={isMirrored}
