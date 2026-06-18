@@ -56,7 +56,7 @@ Use before switching **production** to mainnet and before claiming mainnet in st
 
 - [ ] Update store metadata to state mainnet (if applicable)
 - [ ] Final screenshots from real device
-- [ ] Privacy policy contact info finalized
+- [x] Privacy policy contact info finalized (jamesbitarcade@gmail.com)
 - [ ] Publisher wallet funded for submission/upload costs
 - [ ] KYC/KYB complete in publisher portal
 - [ ] **Submit only after owner approval**

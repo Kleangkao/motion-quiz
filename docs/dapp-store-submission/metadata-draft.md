@@ -49,9 +49,9 @@ Games / Education (pick the closest fit in the publisher portal)
 
 https://motion-quiz.vercel.app
 
-## Support email (placeholder)
+## Support email
 
-`support@YOUR-DOMAIN.example` — replace before submission
+jamesbitarcade@gmail.com
 
 ## Privacy policy URL
 

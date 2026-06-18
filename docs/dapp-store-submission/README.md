@@ -39,7 +39,7 @@ Source: `public/privacy.html`
 
 ## Next step for the owner
 
-1. Review and finalize metadata + privacy contact placeholders.
+1. Review and finalize remaining metadata drafts (support contact: jamesbitarcade@gmail.com).
 2. Complete real Android/Seeker QA (camera + wallet).
 3. Decide devnet vs mainnet for store review (see mainnet checklist).
 4. Capture final phone screenshots on a real device.

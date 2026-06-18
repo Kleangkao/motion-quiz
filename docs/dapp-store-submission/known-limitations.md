@@ -43,5 +43,4 @@ Honest constraints as of the release-readiness path. **These are not app defects
 ## Not blockers for preparing submission materials
 
 - Missing final screenshots (need real device).
-- Placeholder support email in privacy policy and metadata.
 - Mainnet not switched (document clearly in listing if submitting on devnet for review).

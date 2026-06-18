@@ -40,7 +40,7 @@ Reference-only emulator captures (if taken) live in `_screenshots-temp/` — **g
 | Reviewer notes | Draft | `metadata-draft.md`, `reviewer-test-instructions.md` |
 | Website | Ready | https://motion-quiz.vercel.app |
 | Privacy policy URL | Ready after deploy | https://motion-quiz.vercel.app/privacy.html |
-| Support email | **Placeholder** | Replace in metadata + privacy page |
+| Support email | Ready | jamesbitarcade@gmail.com |
 | Category | Draft | Games / Education |
 
 ---
@@ -61,6 +61,6 @@ Reference-only emulator captures (if taken) live in `_screenshots-temp/` — **g
 
 - [ ] Real-device camera + wallet QA complete
 - [ ] Cluster (devnet vs mainnet) decided and env matches copy
-- [ ] Privacy policy contact filled in
+- [x] Privacy policy contact filled in
 - [ ] No secrets in APK metadata or screenshots
 - [ ] Owner explicitly approves submit

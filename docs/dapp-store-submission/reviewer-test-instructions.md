@@ -79,4 +79,4 @@ For Solana dApp Store reviewers and internal QA. **Do not submit these notes as 
 
 Include: device model, Android version, wallet app name, cluster (devnet/mainnet), steps to reproduce, and whether TWA showed a URL bar.
 
-Support contact: replace with publisher email before external review.
+Support contact: jamesbitarcade@gmail.com
