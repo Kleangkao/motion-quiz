@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.islanddao.motionquiz",
+      "sha256_cert_fingerprints": [
+        "5D:4B:E3:D1:17:56:54:E6:D4:28:7D:2E:F0:D0:F1:DE:10:21:51:9A:59:A0:92:9E:DC:11:BB:9D:F0:9B:AC:C2"
+      ]
+    }
+  }
+]

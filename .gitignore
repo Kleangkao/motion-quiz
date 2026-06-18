@@ -17,6 +17,15 @@ node_modules/
 dist/
 dist-ssr/
 build/
+twa/app/build/
+twa/build/
+twa/.gradle/
+twa/local.properties
+twa/android-keystore*
+*.keystore
+*.jks
+*.apk
+*.aab
 
 # Vite / tooling cache
 .vite/

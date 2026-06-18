@@ -73,8 +73,9 @@ Proofs are stored locally in IndexedDB with the result.
 
 1. `npm run build` — static assets in `dist/`
 2. Deploy as HTTPS PWA (manifest at `/manifest.webmanifest`)
-3. Wrap with [Bubblewrap](https://github.com/GoogleChromeLabs/bubblewrap) or TWA for Android APK
-4. Submit to the **Solana dApp Store** with metadata describing a mobile learning / community quiz game
+3. Android TWA scaffold in [`twa/`](twa/) (Bubblewrap). See [`twa/README.md`](twa/README.md).
+4. Publish `public/.well-known/assetlinks.json` (release signing fingerprint required for verified TWA)
+5. Submit to the **Solana dApp Store** with metadata describing a mobile learning / community quiz game
 
 ## Tech stack
 
