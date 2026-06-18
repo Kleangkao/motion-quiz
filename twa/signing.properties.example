@@ -1,0 +1,5 @@
+# Copy to twa/signing.properties (gitignored). Never commit the real file.
+# storeFile=C\:\\Users\\<you>\\.android\\motion-quiz-release.jks
+# storePassword=<your-store-password>
+# keyPassword=<your-key-password>
+# keyAlias=motionquiz

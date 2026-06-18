@@ -5,6 +5,7 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { useWallet } from '@/solana/WalletProvider';
 import { solanaExplorerAddressUrl } from '@/solana/explorer';
 import { getSolanaCluster, isSupabaseConfigured } from '@/solana/env';
+import { clusterLabel } from '@/solana/solanaConfig';
 import { getResultSession } from '@/storage/resultStorage';
 import { getMostRecentPhotoMomentMintForSession } from '@/storage/photoMomentNftStorage';
 import {
@@ -304,7 +305,7 @@ export function ScoresPage() {
     >
       <div className="space-y-6">
         <div>
-          <p className="text-sm text-white/50">Verified scores recorded on Solana devnet.</p>
+          <p className="text-sm text-white/50">Verified scores recorded on {clusterLabel(cluster)}.</p>
         </div>
 
         <div className="flex gap-2">

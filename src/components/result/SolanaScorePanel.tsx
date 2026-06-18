@@ -5,6 +5,7 @@ import { useWallet, shortenAddress } from '@/solana/WalletProvider';
 import type { LessonPack, ResultSession } from '@/storage/types';
 import { isLeaderboardEligiblePack } from '@/solana/leaderboardEligibility';
 import { isSupabaseConfigured, getSolanaCluster } from '@/solana/env';
+import { clusterLabel, clusterShortLabel } from '@/solana/solanaConfig';
 import {
   buildScoreReceiptFromSession,
   scoreReceiptExpectedFromPayload,
@@ -61,11 +62,6 @@ export function SolanaScorePanel({ session, lesson, onScoreRecorded }: Props) {
 
   const handleRecord = async () => {
     if (!address || !lesson) return;
-    if (cluster !== 'devnet') {
-      setRecordError('Only devnet score recording is enabled right now.');
-      setRecordState('error');
-      return;
-    }
 
     setRecordState('recording');
     setRecordError(null);
@@ -119,7 +115,7 @@ export function SolanaScorePanel({ session, lesson, onScoreRecorded }: Props) {
       <div className="glass-card p-5 space-y-2">
         <h3 className="font-bold text-white">Solana Score</h3>
         <p className="text-xs text-white/50 leading-relaxed">
-          Score recording is not configured yet. Add Supabase env vars to enable devnet leaderboard recording.
+          Score recording is not configured yet. Add Supabase env vars to enable {clusterShortLabel(cluster)} leaderboard recording.
         </p>
       </div>
     );
@@ -130,7 +126,7 @@ export function SolanaScorePanel({ session, lesson, onScoreRecorded }: Props) {
       <div>
         <h3 className="font-bold text-white">Solana Score</h3>
         <p className="text-xs text-white/50 mt-1 leading-relaxed">
-          Record this score on Solana devnet and add it to the topic leaderboard.
+          Record this score on {clusterLabel(cluster)} and add it to the topic leaderboard.
         </p>
       </div>
 
@@ -188,7 +184,7 @@ export function SolanaScorePanel({ session, lesson, onScoreRecorded }: Props) {
             {recordState === 'recording' ? 'Recording score…' : 'Record Score on Solana'}
           </button>
           <p className="text-xs text-white/45">
-            Creates a devnet memo transaction. No token transfer.
+            Creates a {clusterShortLabel(cluster)} memo transaction. No token transfer.
           </p>
           {!lesson && (
             <p className="text-xs text-white/45">Loading topic details…</p>

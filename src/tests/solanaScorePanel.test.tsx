@@ -94,6 +94,40 @@ describe('SolanaScorePanel connected states', () => {
     vi.resetModules();
   });
 
+  it('uses cluster-aware copy for mainnet configuration', async () => {
+    vi.doMock('@/solana/env', () => ({
+      isSupabaseConfigured: () => true,
+      getSolanaCluster: () => 'mainnet-beta',
+    }));
+    vi.doMock('@/solana/WalletProvider', () => ({
+      useWallet: () => ({
+        address: null,
+        connecting: false,
+        error: null,
+        supportsTransactions: true,
+        requestConnect,
+        sendTransaction: vi.fn(),
+        signMessage: vi.fn(),
+      }),
+      shortenAddress: (addr: string | null | undefined) => addr ?? '—',
+    }));
+    vi.doMock('@/storage/scoreRecordStorage', () => ({
+      getRecordedScore: () => null,
+      saveRecordedScore: vi.fn(),
+    }));
+
+    const { SolanaScorePanel: Panel } = await import('@/components/result/SolanaScorePanel');
+
+    render(
+      <Panel
+        session={baseSession}
+        lesson={lessonFixture}
+      />,
+    );
+
+    expect(screen.getByText(/Record this score on Solana mainnet/)).toBeInTheDocument();
+  });
+
   it('shows unsupported wallet message without crashing', async () => {
     vi.doMock('@/solana/WalletProvider', () => ({
       useWallet: () => ({

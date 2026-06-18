@@ -22,8 +22,11 @@ twa/build/
 twa/.gradle/
 twa/local.properties
 twa/android-keystore*
+twa/signing.properties
+signing.properties
 *.keystore
 *.jks
+*.p12
 *.apk
 *.aab
 

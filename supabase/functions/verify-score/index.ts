@@ -69,9 +69,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const cluster = Deno.env.get('MOTION_QUIZ_CLUSTER') ?? 'devnet';
-    if (cluster !== 'devnet') {
-      return jsonResponse({ ok: false, error: 'Only devnet cluster is enabled in Phase A' }, 400);
+    const configuredCluster = Deno.env.get('MOTION_QUIZ_CLUSTER') ?? 'devnet';
+    if (configuredCluster !== 'devnet' && configuredCluster !== 'mainnet-beta') {
+      return jsonResponse({ ok: false, error: 'MOTION_QUIZ_CLUSTER must be devnet or mainnet-beta' }, 500);
     }
 
     const rpcUrl = Deno.env.get('SOLANA_RPC_URL');
@@ -93,8 +93,12 @@ Deno.serve(async (req) => {
 
     const { txSignature, expected } = parsed;
 
-    if (expected.cluster !== 'devnet') {
-      return jsonResponse({ ok: false, error: 'Only devnet cluster is accepted' }, 400);
+    if (expected.cluster !== 'devnet' && expected.cluster !== 'mainnet-beta') {
+      return jsonResponse({ ok: false, error: 'cluster must be devnet or mainnet-beta' }, 400);
+    }
+
+    if (expected.cluster !== configuredCluster) {
+      return jsonResponse({ ok: false, error: 'Cluster does not match server configuration' }, 400);
     }
 
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
