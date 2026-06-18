@@ -246,6 +246,7 @@ describe('ScoresPage leaderboard loading', () => {
 
     expect(await screen.findByRole('link', { name: 'Tx' })).toBeInTheDocument();
     expect(screen.getByText(/5\/5/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'View Result' })).toBeNull();
     expect(screen.queryByText('No recorded scores yet for this topic.')).toBeNull();
   });
 });
@@ -285,7 +286,7 @@ describe('SolanaScorePanel recorded link', () => {
   it('points View leaderboard to Scores route with pack and tab params', async () => {
     render(
       <MemoryRouter>
-        <SolanaScorePanel session={baseSession} lesson={lessonFixture} onUpdated={vi.fn()} />
+        <SolanaScorePanel session={baseSession} lesson={lessonFixture} />
       </MemoryRouter>,
     );
 

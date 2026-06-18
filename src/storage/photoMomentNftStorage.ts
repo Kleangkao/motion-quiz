@@ -106,3 +106,30 @@ export function listPhotoMomentNftsForSession(params: {
     .filter(([key, value]) => key.startsWith(prefix) && isValidRecord(value))
     .map(([, value]) => value);
 }
+
+export function hasAnyPhotoMomentMintForSession(params: {
+  cluster: SolanaCluster;
+  sessionId: string;
+}): boolean {
+  return listPhotoMomentMintsForSessionOnCluster(params).length > 0;
+}
+
+/** Most recent mint for a session; optionally scoped to one wallet. */
+export function getMostRecentPhotoMomentMintForSession(params: {
+  cluster: SolanaCluster;
+  sessionId: string;
+  walletAddress?: string;
+}): StoredPhotoMomentNft | null {
+  const records = params.walletAddress
+    ? listPhotoMomentNftsForSession({
+        cluster: params.cluster,
+        sessionId: params.sessionId,
+        walletAddress: params.walletAddress,
+      })
+    : listPhotoMomentMintsForSessionOnCluster({
+        cluster: params.cluster,
+        sessionId: params.sessionId,
+      });
+  if (records.length === 0) return null;
+  return [...records].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
+}

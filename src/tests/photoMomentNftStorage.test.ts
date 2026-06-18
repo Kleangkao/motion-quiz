@@ -1,6 +1,8 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import {
+  getMostRecentPhotoMomentMintForSession,
   getPhotoMomentNftRecord,
+  hasAnyPhotoMomentMintForSession,
   hasPhotoMomentMintForSession,
   savePhotoMomentNftRecord,
 } from '@/storage/photoMomentNftStorage';
@@ -135,5 +137,43 @@ describe('photoMomentNftStorage', () => {
         photoIndex: 0,
       }),
     ).toBe(false);
+  });
+
+  it('reports any session mint and returns most recent for wallet', () => {
+    savePhotoMomentNftRecord({
+      sessionId: 'session-1',
+      photoIndex: 0,
+      walletAddress: 'wallet-a',
+      packId: 'pack',
+      cluster: 'devnet',
+      mintAddress: 'Mint111111111111111111111111111111111111111',
+      txSignature: 'tx-old',
+      metadataUri: 'https://example.com/old.json',
+      imageUri: 'https://example.com/old.png',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    });
+    savePhotoMomentNftRecord({
+      sessionId: 'session-1',
+      photoIndex: 1,
+      walletAddress: 'wallet-a',
+      packId: 'pack',
+      cluster: 'devnet',
+      mintAddress: 'Mint222222222222222222222222222222222222222',
+      txSignature: 'tx-new',
+      metadataUri: 'https://example.com/new.json',
+      imageUri: 'https://example.com/new.png',
+      createdAt: '2026-06-17T12:00:00.000Z',
+    });
+
+    expect(hasAnyPhotoMomentMintForSession({ cluster: 'devnet', sessionId: 'session-1' })).toBe(
+      true,
+    );
+    expect(
+      getMostRecentPhotoMomentMintForSession({
+        cluster: 'devnet',
+        sessionId: 'session-1',
+        walletAddress: 'wallet-a',
+      })?.txSignature,
+    ).toBe('tx-new');
   });
 });

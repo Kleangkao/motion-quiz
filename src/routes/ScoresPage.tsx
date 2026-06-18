@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { useWallet } from '@/solana/WalletProvider';
+import { solanaExplorerAddressUrl } from '@/solana/explorer';
 import { getSolanaCluster, isSupabaseConfigured } from '@/solana/env';
+import { getResultSession } from '@/storage/resultStorage';
+import { getMostRecentPhotoMomentMintForSession } from '@/storage/photoMomentNftStorage';
 import {
   fetchMyRecordedScores,
   fetchTopicLeaderboard,
@@ -60,6 +63,29 @@ function LeaderboardRowCard({ row }: { row: TopicLeaderboardRow }) {
 }
 
 function MyScoreCard({ row }: { row: RecordedScoreRow }) {
+  const navigate = useNavigate();
+  const [localResultReady, setLocalResultReady] = useState<boolean | null>(null);
+
+  const nftMint = useMemo(
+    () =>
+      getMostRecentPhotoMomentMintForSession({
+        cluster: row.cluster,
+        sessionId: row.sessionId,
+        walletAddress: row.walletAddress,
+      }),
+    [row.cluster, row.sessionId, row.walletAddress],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    getResultSession(row.sessionId).then((session) => {
+      if (!cancelled) setLocalResultReady(Boolean(session));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [row.sessionId]);
+
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 space-y-2">
       <div className="flex items-start justify-between gap-3">
@@ -69,16 +95,43 @@ function MyScoreCard({ row }: { row: RecordedScoreRow }) {
             {formatScoreLine(row.score, row.total)} · {formatAccuracyPercent(row.accuracy)}
           </p>
         </div>
-        <a
-          href={explorerUrlForTx(row.txSignature, row.cluster)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn btn-secondary btn-sm text-[10px] flex-shrink-0"
-        >
-          Tx
-        </a>
+        <div className="flex flex-shrink-0 flex-col items-end gap-1.5">
+          <a
+            href={explorerUrlForTx(row.txSignature, row.cluster)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-secondary btn-sm text-[10px]"
+          >
+            Tx
+          </a>
+          {nftMint && (
+            <a
+              href={solanaExplorerAddressUrl(nftMint.mintAddress, nftMint.cluster)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-secondary btn-sm text-[10px]"
+            >
+              View NFT
+            </a>
+          )}
+        </div>
       </div>
       <p className="text-[11px] text-white/35">{pickRecordedDisplayTime(row)}</p>
+      <div className="pt-0.5">
+        {localResultReady === null ? (
+          <p className="text-[10px] text-white/25">Checking local result…</p>
+        ) : localResultReady ? (
+          <button
+            type="button"
+            onClick={() => navigate(`/play/${row.packId}/result/${row.sessionId}`)}
+            className="btn btn-secondary btn-sm text-[10px]"
+          >
+            View Result
+          </button>
+        ) : (
+          <p className="text-[10px] text-white/35">Result unavailable on this device</p>
+        )}
+      </div>
     </div>
   );
 }
