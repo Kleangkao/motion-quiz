@@ -124,6 +124,7 @@ describe('runGestureSelector — pose wide zone', () => {
         poseLandmarks: lms,
         timestampMs: 100,
         targetZones: buildWideZoneTargets(1000),
+        allowPoseHoldStart: true,
       },
       resetGestureState(),
     );

@@ -27,6 +27,9 @@ export interface TargetZoneSet {
 
 export type ZoneHitResult = 'left' | 'right' | 'neutral' | 'none' | 'ambiguous';
 
+/** Max hit-zone growth toward screen center beyond the measured card edge (normalized). */
+export const HIT_INWARD_TOLERANCE = 0.03;
+
 export function normalizedToTargetRect(r: NormalizedRect): TargetRect {
   const width = r.xMax - r.xMin;
   const height = r.yMax - r.yMin;
@@ -132,8 +135,19 @@ export function buildTargetZones(
   const marginXNorm = marginX / containerWidth;
   const marginYNorm = marginY / containerHeight;
 
-  const leftHit = expandTargetRect(left, marginXNorm, marginYNorm, { maxX: 0.42 });
-  const rightHit = expandTargetRect(right, marginXNorm, marginYNorm, { minX: 0.58 });
+  const leftHit = normalizedToTargetRect({
+    xMin: Math.max(0, left.xMin - marginXNorm),
+    xMax: Math.min(0.42, left.xMax + HIT_INWARD_TOLERANCE),
+    yMin: Math.max(0, left.yMin - marginYNorm),
+    yMax: Math.min(1, left.yMax + marginYNorm),
+  });
+
+  const rightHit = normalizedToTargetRect({
+    xMin: Math.max(0.58, right.xMin - HIT_INWARD_TOLERANCE),
+    xMax: Math.min(1, right.xMax + marginXNorm),
+    yMin: Math.max(0, right.yMin - marginYNorm),
+    yMax: Math.min(1, right.yMax + marginYNorm),
+  });
 
   return {
     left: { card: left, hit: leftHit },

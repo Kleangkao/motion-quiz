@@ -4,6 +4,7 @@ import {
   classifyPointInTargets,
   normalizedToTargetRect,
   sideFromTargets,
+  HIT_INWARD_TOLERANCE,
 } from '@/vision/targetZones';
 import {
   runGestureSelector,
@@ -92,6 +93,76 @@ describe('buildTargetZones', () => {
   it('neutral zone blocks center answers', () => {
     const z = zones('card-centered-target');
     expect(classifyPointInTargets(0.5, 0.53, z)).toBe('neutral');
+  });
+
+  it('left hit inward edge is bounded by card.xMax + inward tolerance', () => {
+    const z = zones('card-centered-target', 'normal');
+    expect(z.left.hit.xMax).toBeCloseTo(
+      Math.min(0.42, LEFT_CARD.xMax + HIT_INWARD_TOLERANCE),
+    );
+  });
+
+  it('right hit inward edge is bounded by card.xMin - inward tolerance', () => {
+    const z = zones('card-centered-target', 'normal');
+    expect(z.right.hit.xMin).toBeCloseTo(
+      Math.max(0.58, RIGHT_CARD.xMin - HIT_INWARD_TOLERANCE),
+    );
+  });
+});
+
+describe('card-centered inward hit tolerance', () => {
+  const cardY = 0.53;
+
+  it('left gap point beyond card.xMax + tolerance does not count', () => {
+    const z = zones('card-centered-target', 'normal');
+    const beyond = z.left.card.xMax + HIT_INWARD_TOLERANCE + 0.03;
+    expect(classifyPointInTargets(beyond, cardY, z)).not.toBe('left');
+  });
+
+  it('right gap point before card.xMin - tolerance does not count', () => {
+    const z = zones('card-centered-target', 'normal');
+    const beyond = z.right.card.xMin - HIT_INWARD_TOLERANCE - 0.03;
+    expect(classifyPointInTargets(beyond, cardY, z)).not.toBe('right');
+  });
+
+  it('point within inward tolerance still counts for left', () => {
+    const z = zones('card-centered-target', 'normal');
+    const inside = z.left.card.xMax + HIT_INWARD_TOLERANCE * 0.5;
+    expect(sideFromTargets(inside, cardY, z)).toBe('left');
+  });
+
+  it('point within inward tolerance still counts for right', () => {
+    const z = zones('card-centered-target', 'normal');
+    const inside = z.right.card.xMin - HIT_INWARD_TOLERANCE * 0.5;
+    expect(sideFromTargets(inside, cardY, z)).toBe('right');
+  });
+
+  it('point outward of left card still counts', () => {
+    const z = zones('card-centered-target', 'normal');
+    const outward = Math.max(0.01, z.left.hit.xMin + 0.02);
+    expect(outward).toBeLessThan(z.left.card.xMin);
+    expect(sideFromTargets(outward, cardY, z)).toBe('left');
+  });
+
+  it('point outward of right card still counts', () => {
+    const z = zones('card-centered-target', 'normal');
+    const outward = Math.min(0.99, z.right.hit.xMax - 0.02);
+    expect(outward).toBeGreaterThan(z.right.card.xMax);
+    expect(sideFromTargets(outward, cardY, z)).toBe('right');
+  });
+
+  it('center neutral unchanged on mobile width', () => {
+    const z = buildTargetZones(
+      { xMin: LEFT_CARD.xMin, xMax: LEFT_CARD.xMax, yMin: LEFT_CARD.yMin, yMax: LEFT_CARD.yMax },
+      { xMin: RIGHT_CARD.xMin, xMax: RIGHT_CARD.xMax, yMin: RIGHT_CARD.yMin, yMax: RIGHT_CARD.yMax },
+      500,
+      400,
+      'card-centered-target',
+      'normal',
+    )!;
+    expect(z.neutral.xMin).toBeCloseTo(0.375);
+    expect(z.neutral.xMax).toBeCloseTo(0.625);
+    expect(classifyPointInTargets(0.5, cardY, z)).toBe('neutral');
   });
 });
 

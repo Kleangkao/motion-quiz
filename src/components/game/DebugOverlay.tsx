@@ -1,9 +1,10 @@
 import type { DetectionDiagnostics } from '@/vision/detectionTypes';
 import type { TargetZoneSet } from '@/vision/targetZones';
 import { landmarkToContainerNorm } from '@/vision/landmarkUtils';
-import { HandLandmarkIndex } from '@/vision/handLandmarker';
 import { PoseLandmarkIndex } from '@/vision/types';
 import { classifyPointInTargets } from '@/vision/targetZones';
+import { getGestureRejectionDebugDetail } from '@/vision/gestureStatusMessages';
+import { getHandAimLandmark } from '@/vision/gestureSelector';
 
 interface Props {
   diagnostics: DetectionDiagnostics;
@@ -56,10 +57,13 @@ export function DebugOverlay({
   const layout = { videoWidth, videoHeight, displayWidth, displayHeight, mirrored };
 
   const candidatePoint = (() => {
-    const tip = d.handLandmarks?.[0]?.[HandLandmarkIndex.INDEX_FINGER_TIP];
+    const bodyCenterXNorm = d.bodyCenterX ?? 0.5;
+    const handAim = d.handLandmarks?.[0]
+      ? getHandAimLandmark(d.handLandmarks[0], bodyCenterXNorm)
+      : null;
     const wrist = d.poseLandmarks?.[PoseLandmarkIndex.LEFT_WRIST]
       ?? d.poseLandmarks?.[PoseLandmarkIndex.RIGHT_WRIST];
-    const lm = tip ?? wrist;
+    const lm = handAim ?? wrist;
     if (!lm) return null;
     return landmarkToContainerNorm(lm, layout);
   })();
@@ -83,6 +87,7 @@ export function DebugOverlay({
         {row('Hold', `${(g.holdProgress * 100).toFixed(0)}%`)}
         {row('Locked', g.lockedSide ?? 'none')}
         {row('Reason', g.reason ?? '—')}
+        {row('Reject detail', getGestureRejectionDebugDetail(g))}
         {row('FPS', d.fps.toFixed(1))}
         {row('Mirror', mirrored)}
       </div>

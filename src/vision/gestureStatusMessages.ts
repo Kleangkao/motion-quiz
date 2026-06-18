@@ -31,7 +31,7 @@ export function getGestureStatusMessage(
   }
 
   if (output.reason === 'wrong_side') {
-    return { text: 'Wrong card. Point at the card shown in the instructions.', icon: '↩️' };
+    return { text: 'Wrong card — point at the side shown in the instructions.', icon: '↩️' };
   }
 
   if (output.reason === 'cooldown' || output.lockedSide) {
@@ -39,21 +39,35 @@ export function getGestureStatusMessage(
   }
 
   if (output.candidateSide === 'left') {
-    if (output.holdProgress > 0.3) {
-      return { text: `Hold on LEFT… ${Math.round(output.holdProgress * 100)}%`, icon: '👈' };
+    if (output.reason === 'grace' || output.holdProgress > 0.3) {
+      return {
+        text: `Hold on LEFT… ${Math.round(output.holdProgress * 100)}%`,
+        icon: '👈',
+      };
     }
     return { text: 'Point at the LEFT answer card.', icon: '👈' };
   }
 
   if (output.candidateSide === 'right') {
-    if (output.holdProgress > 0.3) {
-      return { text: `Hold on RIGHT… ${Math.round(output.holdProgress * 100)}%`, icon: '👉' };
+    if (output.reason === 'grace' || output.holdProgress > 0.3) {
+      return {
+        text: `Hold on RIGHT… ${Math.round(output.holdProgress * 100)}%`,
+        icon: '👉',
+      };
     }
     return { text: 'Point at the RIGHT answer card.', icon: '👉' };
   }
 
-  if (output.reason === 'neutral_zone' || output.reason === 'near_body') {
-    return { text: 'Move your hand farther toward an answer.', icon: '🎯' };
+  if (output.reason === 'neutral_zone') {
+    return { text: 'Move farther left or right — center does not count.', icon: '🎯' };
+  }
+
+  if (output.reason === 'ambiguous') {
+    return { text: 'Point more clearly at one answer card.', icon: '🎯' };
+  }
+
+  if (output.reason === 'near_body') {
+    return { text: 'Extend your arm farther toward the answer.', icon: '🎯' };
   }
 
   if (diagnostics.personDetected) {
@@ -71,4 +85,19 @@ export function getGestureStatusMessage(
   }
 
   return { text: 'Point at one of the answer cards.', icon: '🤚' };
+}
+
+/** Debug-only detail for rejection reasons (not shown in normal gameplay). */
+export function getGestureRejectionDebugDetail(output: GestureSelectorOutput): string | null {
+  if (!output.reason) return null;
+  if (output.reason === 'holding' || output.reason === 'locked' || output.reason === 'grace') {
+    return null;
+  }
+  const parts = [output.reason];
+  if (output.debug?.pointingAt) parts.push(`pointing=${String(output.debug.pointingAt)}`);
+  if (output.debug?.source) parts.push(`source=${String(output.debug.source)}`);
+  if (output.debug?.graceMissCount !== undefined) {
+    parts.push(`graceMiss=${String(output.debug.graceMissCount)}`);
+  }
+  return parts.join(' · ');
 }

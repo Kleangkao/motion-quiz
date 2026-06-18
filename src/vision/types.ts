@@ -94,6 +94,8 @@ export interface GestureSelectorInput {
   targetZones?: import('./targetZones').TargetZoneSet;
   /** When set, only this side can become a candidate (gesture test steps) */
   requiredSide?: 'left' | 'right';
+  /** When false, pose wrists cannot start a new hold (hand landmarker enabled). */
+  allowPoseHoldStart?: boolean;
 }
 
 export interface GestureSelectorOutput {
@@ -120,4 +122,11 @@ export interface GestureSelectorState {
     source?: 'pose' | 'hand';
   };
   lastLockEventId?: number;
+  /** Accumulated ms with a valid same-side candidate (misses/grace do not add). */
+  validHoldMs?: number;
+  lastHoldTickMs?: number;
+  /** True once a hand candidate has started the current hold attempt. */
+  holdInitiatedByHand?: boolean;
+  graceMissCount?: number;
+  graceMissStartMs?: number;
 }

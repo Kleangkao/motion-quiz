@@ -3,6 +3,7 @@ import { PoseLandmarkerService } from '@/vision/poseLandmarker';
 import { HandLandmarkerService } from '@/vision/handLandmarker';
 import { runGestureSelector, resetGestureState } from '@/vision/gestureSelector';
 import { isTooCloseToCamera, isPoseConfident } from '@/vision/gestureSelector';
+import { resolveGestureDisplayOutput } from '@/vision/gestureDisplay';
 import { computeBodyCenterX } from '@/vision/landmarkUtils';
 import { PerformanceMonitor } from '@/vision/performanceMonitor';
 import type { CalibrationProfile, GestureSelectorOutput, GestureSelectorState, GestureSettings } from '@/vision/types';
@@ -57,6 +58,10 @@ export function useVisionDetection(options: UseVisionDetectionOptions): UseVisio
   const inferenceBusyRef = useRef(false);
   const videoReadyRef = useRef(false);
   const lastDetectionTsRef = useRef<number | null>(null);
+  const lastGestureOutputRef = useRef<GestureSelectorOutput>({
+    confidence: 0,
+    holdProgress: 0,
+  });
 
   const [gestureOutput, setGestureOutput] = useState<GestureSelectorOutput>({
     confidence: 0,
@@ -167,11 +172,13 @@ export function useVisionDetection(options: UseVisionDetectionOptions): UseVisio
               settings: getSettings(),
               targetZones: targetZonesRef.current ?? undefined,
               requiredSide,
+              allowPoseHoldStart: !enableHandLandmarker,
             },
             gestureStateRef.current,
           );
           gestureStateRef.current = nextState;
           output = o;
+          lastGestureOutputRef.current = o;
           inferenceRan = true;
           perfMonRef.current.tick();
           lastDetectionTsRef.current = now;
@@ -185,6 +192,17 @@ export function useVisionDetection(options: UseVisionDetectionOptions): UseVisio
       const personDetected =
         (poseLandmarks != null && poseLandmarks.length > 0) ||
         (handLandmarks != null && handLandmarks.length > 0);
+
+      output = resolveGestureDisplayOutput(
+        inferenceRan,
+        output,
+        gestureStateRef.current,
+        lastGestureOutputRef.current,
+        settings.minHoldMs,
+      );
+      if (inferenceRan) {
+        lastGestureOutputRef.current = output;
+      }
 
       const lwVis = poseLandmarks?.[PoseLandmarkIndex.LEFT_WRIST]?.visibility ?? null;
       const rwVis = poseLandmarks?.[PoseLandmarkIndex.RIGHT_WRIST]?.visibility ?? null;

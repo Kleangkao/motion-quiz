@@ -17,6 +17,18 @@ import { sideFromDisplayX } from './gestureSelectorWide';
 
 export { applyMirror, sideFromDisplayX } from './gestureSelectorWide';
 
+/** Max wall-clock span for consecutive tracking misses during an active hold. */
+export const HOLD_GRACE_MAX_MS = 100;
+/** Max consecutive no-candidate inference frames during an active hold. */
+export const HOLD_GRACE_MAX_CONSECUTIVE_MISSES = 2;
+
+const GRACE_BLOCKING_REASONS = new Set([
+  'neutral_zone',
+  'ambiguous',
+  'near_body',
+  'wrong_side',
+]);
+
 interface SideCandidate {
   side: 'left' | 'right';
   confidence: number;
@@ -63,7 +75,7 @@ function averageLandmarks(landmarks: Landmark[]): Landmark {
 }
 
 /** Aim from outward-reaching fingertips (not palm / idle finger defaults). */
-function getHandAimLandmark(
+export function getHandAimLandmark(
   handLandmarks: Landmark[],
   bodyCenterXNorm: number,
 ): Landmark | null {
@@ -206,6 +218,31 @@ export function evaluateHandSide(
   );
 }
 
+function evaluatePosePreserveForSide(
+  side: 'left' | 'right',
+  poseLandmarks: Landmark[],
+  bodyCenterXNorm: number,
+  layout: LayoutInput,
+  settings: GestureSelectorInput['settings'],
+  visMin: number,
+  targetZones?: TargetZoneSet,
+): SideCandidate | null {
+  if (!isPoseConfident(poseLandmarks, visMin)) return null;
+
+  const wristIndex =
+    side === 'left' ? PoseLandmarkIndex.LEFT_WRIST : PoseLandmarkIndex.RIGHT_WRIST;
+  const candidate = evaluateWrist(
+    poseLandmarks[wristIndex],
+    bodyCenterXNorm,
+    layout,
+    settings,
+    visMin,
+    targetZones,
+  );
+  if (!candidate || candidate.side !== side) return null;
+  return candidate;
+}
+
 export function isPoseConfident(
   poseLandmarks: Landmark[],
   visMin: number,
@@ -239,12 +276,26 @@ function pickBestCandidate(
   if (candidates.length === 0) return null;
   if (candidates.length === 1) return candidates[0];
 
-  if (state.candidateSide && state.candidateStartMs) {
+  if (state.candidateSide) {
     const sticky = candidates.find((c) => c.side === state.candidateSide);
     if (sticky) return sticky;
   }
 
   return candidates.reduce((a, b) => (a.confidence >= b.confidence ? a : b));
+}
+
+function clearedHoldState(state: GestureSelectorState): GestureSelectorState {
+  return {
+    ...state,
+    candidateSide: undefined,
+    candidateStartMs: undefined,
+    lockedSide: undefined,
+    validHoldMs: undefined,
+    lastHoldTickMs: undefined,
+    holdInitiatedByHand: undefined,
+    graceMissCount: undefined,
+    graceMissStartMs: undefined,
+  };
 }
 
 function applyHoldAndLock(
@@ -255,21 +306,51 @@ function applyHoldAndLock(
   bodyCenterXNorm: number,
   zoneHit?: string,
 ): { output: GestureSelectorOutput; nextState: GestureSelectorState } {
-  let nextState: GestureSelectorState = { ...state };
+  let nextState: GestureSelectorState = {
+    ...state,
+    graceMissCount: undefined,
+    graceMissStartMs: undefined,
+  };
+
+  if (best.source === 'hand') {
+    nextState.holdInitiatedByHand = true;
+  }
 
   if (best.side !== state.candidateSide) {
     nextState = {
-      ...state,
+      ...nextState,
       candidateSide: best.side,
       candidateStartMs: timestampMs,
       lockedSide: undefined,
+      validHoldMs: 0,
+      lastHoldTickMs: undefined,
+      holdInitiatedByHand: best.source === 'hand',
     };
   }
 
-  const elapsed = timestampMs - (nextState.candidateStartMs ?? timestampMs);
-  const holdProgress = Math.min(1, elapsed / settings.minHoldMs);
+  let validHoldMs = nextState.validHoldMs ?? 0;
+  if (nextState.lastHoldTickMs !== undefined) {
+    validHoldMs += timestampMs - nextState.lastHoldTickMs;
+  }
+  nextState.lastHoldTickMs = timestampMs;
+  nextState.validHoldMs = validHoldMs;
+
+  const holdProgress = Math.min(1, validHoldMs / settings.minHoldMs);
 
   if (holdProgress >= 1) {
+    if (!nextState.holdInitiatedByHand) {
+      return {
+        output: {
+          candidateSide: best.side,
+          confidence: best.confidence,
+          holdProgress: Math.min(0.99, holdProgress),
+          reason: 'holding',
+          debug: { bodyCenterXNorm, source: best.source, zoneHit, validHoldMs },
+        },
+        nextState,
+      };
+    }
+
     const eventId = (state.lastLockEventId ?? 0) + 1;
     nextState = {
       ...nextState,
@@ -277,6 +358,9 @@ function applyHoldAndLock(
       cooldownUntilMs: timestampMs + settings.cooldownMs,
       candidateSide: undefined,
       candidateStartMs: undefined,
+      validHoldMs: undefined,
+      lastHoldTickMs: undefined,
+      holdInitiatedByHand: undefined,
       pendingLock: { side: best.side, eventId, source: best.source },
       lastLockEventId: eventId,
     };
@@ -300,13 +384,13 @@ function applyHoldAndLock(
       confidence: best.confidence,
       holdProgress,
       reason: 'holding',
-      debug: { bodyCenterXNorm, source: best.source, zoneHit, elapsed },
+      debug: { bodyCenterXNorm, source: best.source, zoneHit, validHoldMs },
     },
     nextState,
   };
 }
 
-function outputFromPendingLock(state: GestureSelectorState): GestureSelectorOutput {
+export function outputFromPendingLock(state: GestureSelectorState): GestureSelectorOutput {
   const lock = state.pendingLock!;
   return {
     candidateSide: lock.side,
@@ -343,6 +427,49 @@ function inferNoCandidateReason(
   return 'no_candidate';
 }
 
+function tryHoldGrace(
+  state: GestureSelectorState,
+  timestampMs: number,
+  settings: GestureSelectorInput['settings'],
+  reason: string,
+): { output: GestureSelectorOutput; nextState: GestureSelectorState } | null {
+  if (
+    state.candidateSide === undefined ||
+    state.lastHoldTickMs === undefined ||
+    GRACE_BLOCKING_REASONS.has(reason)
+  ) {
+    return null;
+  }
+
+  const graceMissCount = (state.graceMissCount ?? 0) + 1;
+  const graceMissStartMs = state.graceMissStartMs ?? timestampMs;
+  const graceElapsed = timestampMs - graceMissStartMs;
+
+  if (
+    graceMissCount > HOLD_GRACE_MAX_CONSECUTIVE_MISSES ||
+    graceElapsed > HOLD_GRACE_MAX_MS
+  ) {
+    return null;
+  }
+
+  const holdProgress = Math.min(1, (state.validHoldMs ?? 0) / settings.minHoldMs);
+
+  return {
+    output: {
+      candidateSide: state.candidateSide,
+      confidence: 0,
+      holdProgress,
+      reason: 'grace',
+      debug: { graceMissCount, graceElapsed },
+    },
+    nextState: {
+      ...state,
+      graceMissCount,
+      graceMissStartMs,
+    },
+  };
+}
+
 export function runGestureSelector(
   input: GestureSelectorInput,
   state: GestureSelectorState,
@@ -356,6 +483,7 @@ export function runGestureSelector(
     settings,
     targetZones,
     requiredSide,
+    allowPoseHoldStart = false,
   } = input;
 
   if (state.pendingLock) {
@@ -401,15 +529,38 @@ export function runGestureSelector(
     }
   }
 
-  if (candidates.length === 0 && poseLandmarks && poseLandmarks.length >= 17) {
-    if (isPoseConfident(poseLandmarks, visMin)) {
-      const leftWrist = poseLandmarks[PoseLandmarkIndex.LEFT_WRIST];
-      const rightWrist = poseLandmarks[PoseLandmarkIndex.RIGHT_WRIST];
-      const leftC = evaluateWrist(leftWrist, bodyCenterXNorm, layout, settings, visMin, targetZones);
-      const rightC = evaluateWrist(rightWrist, bodyCenterXNorm, layout, settings, visMin, targetZones);
-      if (leftC) candidates.push(leftC);
-      if (rightC) candidates.push(rightC);
-    }
+  if (
+    candidates.length === 0 &&
+    state.candidateSide &&
+    state.holdInitiatedByHand &&
+    poseLandmarks &&
+    poseLandmarks.length >= 17
+  ) {
+    const preserved = evaluatePosePreserveForSide(
+      state.candidateSide,
+      poseLandmarks,
+      bodyCenterXNorm,
+      layout,
+      settings,
+      visMin,
+      targetZones,
+    );
+    if (preserved) candidates.push(preserved);
+  }
+
+  if (
+    candidates.length === 0 &&
+    allowPoseHoldStart &&
+    poseLandmarks &&
+    poseLandmarks.length >= 17 &&
+    isPoseConfident(poseLandmarks, visMin)
+  ) {
+    const leftWrist = poseLandmarks[PoseLandmarkIndex.LEFT_WRIST];
+    const rightWrist = poseLandmarks[PoseLandmarkIndex.RIGHT_WRIST];
+    const leftC = evaluateWrist(leftWrist, bodyCenterXNorm, layout, settings, visMin, targetZones);
+    const rightC = evaluateWrist(rightWrist, bodyCenterXNorm, layout, settings, visMin, targetZones);
+    if (leftC) candidates.push(leftC);
+    if (rightC) candidates.push(rightC);
   }
 
   if (requiredSide && candidates.length > 0) {
@@ -422,12 +573,7 @@ export function runGestureSelector(
           reason: 'wrong_side',
           debug: { pointingAt: pickBestCandidate(candidates, state)?.side },
         },
-        nextState: {
-          ...state,
-          candidateSide: undefined,
-          candidateStartMs: undefined,
-          lockedSide: undefined,
-        },
+        nextState: clearedHoldState(state),
       };
     }
     candidates.length = 0;
@@ -457,14 +603,12 @@ export function runGestureSelector(
       }
     }
 
+    const grace = tryHoldGrace(state, timestampMs, settings, reason);
+    if (grace) return grace;
+
     return {
       output: { confidence: 0, holdProgress: 0, reason },
-      nextState: {
-        ...state,
-        candidateSide: undefined,
-        candidateStartMs: undefined,
-        lockedSide: undefined,
-      },
+      nextState: clearedHoldState(state),
     };
   }
 
