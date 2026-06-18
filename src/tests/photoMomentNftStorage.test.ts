@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import {
   getPhotoMomentNftRecord,
+  hasPhotoMomentMintForSession,
   savePhotoMomentNftRecord,
 } from '@/storage/photoMomentNftStorage';
 
@@ -80,5 +81,59 @@ describe('photoMomentNftStorage', () => {
         photoIndex: 0,
       })?.txSignature,
     ).toBe('tx-mainnet');
+  });
+
+  it('normalizes wallet address on save and read', () => {
+    savePhotoMomentNftRecord({
+      sessionId: 'session-1',
+      photoIndex: 0,
+      walletAddress: ' wallet-a ',
+      packId: 'pack',
+      cluster: 'devnet',
+      mintAddress: 'Mint111111111111111111111111111111111111111',
+      txSignature: 'tx-abc',
+      metadataUri: 'https://example.com/meta.json',
+      imageUri: 'https://example.com/image.png',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    });
+
+    expect(
+      getPhotoMomentNftRecord({
+        cluster: 'devnet',
+        walletAddress: 'wallet-a',
+        sessionId: 'session-1',
+        photoIndex: 0,
+      })?.txSignature,
+    ).toBe('tx-abc');
+  });
+
+  it('detects session mint without wallet address', () => {
+    savePhotoMomentNftRecord({
+      sessionId: 'session-1',
+      photoIndex: 1,
+      walletAddress: 'wallet-a',
+      packId: 'pack',
+      cluster: 'devnet',
+      mintAddress: 'Mint111111111111111111111111111111111111111',
+      txSignature: 'tx-abc',
+      metadataUri: 'https://example.com/meta.json',
+      imageUri: 'https://example.com/image.png',
+      createdAt: '2026-01-01T00:00:00.000Z',
+    });
+
+    expect(
+      hasPhotoMomentMintForSession({
+        cluster: 'devnet',
+        sessionId: 'session-1',
+        photoIndex: 1,
+      }),
+    ).toBe(true);
+    expect(
+      hasPhotoMomentMintForSession({
+        cluster: 'devnet',
+        sessionId: 'session-1',
+        photoIndex: 0,
+      }),
+    ).toBe(false);
   });
 });

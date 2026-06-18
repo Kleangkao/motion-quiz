@@ -5,6 +5,7 @@ import {
   getSolflareProvider,
   listBrowserWalletOptions,
   browserWalletSupportsTransactions,
+  tryAutoConnectBrowserWallet,
 } from '@/solana/web-wallet-browser';
 import { isBrowserWalletMode } from '@/solana/platform';
 
@@ -103,6 +104,40 @@ describe('web-wallet-browser', () => {
     await expect(connectBrowserWallet('phantom')).rejects.toThrow(
       'Wallet connected but no address was returned.',
     );
+  });
+
+  it('tryAutoConnectBrowserWallet uses trusted reconnect without prompting', async () => {
+    const connect = vi.fn().mockResolvedValue({
+      publicKey: { toBase58: () => 'TrustedKey111111111111111111111111111' },
+    });
+    const phantom = {
+      isPhantom: true,
+      publicKey: null,
+      connect,
+      disconnect: vi.fn(),
+      signMessage: vi.fn(),
+    };
+    vi.stubGlobal('window', { phantom: { solana: phantom } });
+    await expect(tryAutoConnectBrowserWallet('phantom')).resolves.toBe(
+      'TrustedKey111111111111111111111111111',
+    );
+    expect(connect).toHaveBeenCalledWith({ onlyIfTrusted: true });
+  });
+
+  it('tryAutoConnectBrowserWallet returns existing publicKey without connect', async () => {
+    const connect = vi.fn();
+    const phantom = {
+      isPhantom: true,
+      publicKey: { toBase58: () => 'ExistingKey11111111111111111111111111' },
+      connect,
+      disconnect: vi.fn(),
+      signMessage: vi.fn(),
+    };
+    vi.stubGlobal('window', { phantom: { solana: phantom } });
+    await expect(tryAutoConnectBrowserWallet('phantom')).resolves.toBe(
+      'ExistingKey11111111111111111111111111',
+    );
+    expect(connect).not.toHaveBeenCalled();
   });
 });
 

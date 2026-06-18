@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   getWalletAddressString,
+  normalizeWalletAddress,
   shortenWalletAddress,
   walletAccountAddress,
 } from '@/solana/walletAddress';
@@ -58,5 +59,11 @@ describe('walletAddress', () => {
       'Acct1111111111111111111111111111111',
     );
     expect(walletAccountAddress(undefined)).toBeNull();
+  });
+
+  it('normalizes wallet addresses for storage keys', () => {
+    expect(normalizeWalletAddress(' Wallet111111111111111111111111111111111111111 ')).toBe(
+      'Wallet111111111111111111111111111111111111111',
+    );
   });
 });

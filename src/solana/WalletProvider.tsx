@@ -27,12 +27,18 @@ import {
   connectBrowserWallet,
   disconnectBrowserWallet,
   signMessageWithBrowserWallet,
+  tryAutoConnectBrowserWallet,
   type BrowserWalletId,
 } from './web-wallet-browser';
 import { friendlyWalletError } from './walletErrors';
 import { getSolanaRpcUrl } from './env';
 import { sendScoreReceiptTransaction, walletSupportsScoreRecording } from './scoreReceiptSender';
 import { getWalletAddressString, shortenWalletAddress } from './walletAddress';
+import {
+  clearSavedBrowserWalletId,
+  getSavedBrowserWalletId,
+  saveBrowserWalletId,
+} from './walletPersistence';
 import { BrowserWalletPicker } from '@/components/wallet/BrowserWalletPicker';
 
 function pickSolanaWallet(wallets: readonly Wallet[]): Wallet | null {
@@ -48,6 +54,7 @@ interface WalletContextValue {
   walletLabel: string | null;
   isBrowserWalletMode: boolean;
   connecting: boolean;
+  reconnecting: boolean;
   error: string | null;
   supportsTransactions: boolean;
   pickerOpen: boolean;
@@ -66,6 +73,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [walletLabel, setWalletLabel] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
+  const [reconnecting, setReconnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [browserWalletId, setBrowserWalletId] = useState<BrowserWalletId | null>(null);
@@ -74,6 +82,49 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     ensureMwaRegistered();
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function restoreWallet() {
+      setReconnecting(true);
+      try {
+        if (browserMode) {
+          const savedId = getSavedBrowserWalletId();
+          if (!savedId) return;
+          const restored = await tryAutoConnectBrowserWallet(savedId);
+          if (cancelled || !restored) return;
+          setBrowserWalletId(savedId);
+          setWallet(null);
+          setWalletLabel(browserWalletLabel(savedId));
+          setAddress(restored);
+          return;
+        }
+
+        const wallets = getWallets().get();
+        const solWallet = pickSolanaWallet(wallets);
+        if (!solWallet) return;
+        const connectFeature = solWallet.features[StandardConnect] as StandardConnectFeature[typeof StandardConnect];
+        const result = await connectFeature.connect({ silent: true });
+        const account = result.accounts[0] ?? solWallet.accounts[0];
+        const accountAddress = getWalletAddressString(account);
+        if (cancelled || !accountAddress) return;
+        setWallet(solWallet);
+        setBrowserWalletId(null);
+        setWalletLabel(solWallet.name);
+        setAddress(accountAddress);
+      } catch {
+        // Trusted reconnect is optional; user can connect manually.
+      } finally {
+        if (!cancelled) setReconnecting(false);
+      }
+    }
+
+    void restoreWallet();
+    return () => {
+      cancelled = true;
+    };
+  }, [browserMode]);
 
   const connect = useCallback(
     async (selectedBrowserWallet?: BrowserWalletId) => {
@@ -89,6 +140,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           setWallet(null);
           setWalletLabel(browserWalletLabel(selectedBrowserWallet));
           setAddress(pubkey);
+          saveBrowserWalletId(selectedBrowserWallet);
           return;
         }
 
@@ -157,6 +209,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       setBrowserWalletId(null);
       setWalletLabel(null);
       setAddress(null);
+      clearSavedBrowserWalletId();
     }
   }, [browserWalletId, wallet]);
 
@@ -207,6 +260,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       walletLabel,
       isBrowserWalletMode: browserMode,
       connecting,
+      reconnecting,
       error,
       supportsTransactions,
       pickerOpen,
@@ -222,6 +276,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       walletLabel,
       browserMode,
       connecting,
+      reconnecting,
       error,
       supportsTransactions,
       pickerOpen,

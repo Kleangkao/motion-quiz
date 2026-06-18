@@ -1,10 +1,11 @@
 import type { SolanaCluster } from '@shared/scoreReceipt';
 import type { StoredPhotoMomentNft } from '@/nft/types';
+import { normalizeWalletAddress } from '@/solana/walletAddress';
 
 const STORAGE_KEY = 'motion-quiz:photo-moment-nfts';
 
 function storageKey(record: Pick<StoredPhotoMomentNft, 'cluster' | 'walletAddress' | 'sessionId' | 'photoIndex'>): string {
-  return `${record.cluster}:${record.walletAddress}:${record.sessionId}:${record.photoIndex}`;
+  return `${record.cluster}:${normalizeWalletAddress(record.walletAddress)}:${record.sessionId}:${record.photoIndex}`;
 }
 
 function readAll(): Record<string, StoredPhotoMomentNft> {
@@ -49,7 +50,7 @@ export function getPhotoMomentNftRecord(params: {
 }): StoredPhotoMomentNft | null {
   const key = storageKey({
     cluster: params.cluster,
-    walletAddress: params.walletAddress,
+    walletAddress: normalizeWalletAddress(params.walletAddress),
     sessionId: params.sessionId,
     photoIndex: params.photoIndex,
   });
@@ -59,8 +60,40 @@ export function getPhotoMomentNftRecord(params: {
 
 export function savePhotoMomentNftRecord(record: StoredPhotoMomentNft): void {
   const all = readAll();
-  all[storageKey(record)] = record;
+  const normalized: StoredPhotoMomentNft = {
+    ...record,
+    walletAddress: normalizeWalletAddress(record.walletAddress),
+  };
+  all[storageKey(normalized)] = normalized;
   writeAll(all);
+}
+
+export function listPhotoMomentMintsForSessionOnCluster(params: {
+  cluster: SolanaCluster;
+  sessionId: string;
+}): StoredPhotoMomentNft[] {
+  const prefix = `${params.cluster}:`;
+  const suffix = `:${params.sessionId}:`;
+  return Object.entries(readAll())
+    .filter(([key, value]) => {
+      if (!isValidRecord(value)) return false;
+      if (!key.startsWith(prefix)) return false;
+      return key.includes(suffix);
+    })
+    .map(([, value]) => value);
+}
+
+export function hasPhotoMomentMintForSession(params: {
+  cluster: SolanaCluster;
+  sessionId: string;
+  photoIndex: number;
+}): boolean {
+  const suffix = `:${params.sessionId}:${params.photoIndex}`;
+  const prefix = `${params.cluster}:`;
+  const all = readAll();
+  return Object.entries(all).some(
+    ([key, value]) => key.startsWith(prefix) && key.endsWith(suffix) && isValidRecord(value),
+  );
 }
 
 export function listPhotoMomentNftsForSession(params: {
@@ -68,7 +101,7 @@ export function listPhotoMomentNftsForSession(params: {
   walletAddress: string;
   sessionId: string;
 }): StoredPhotoMomentNft[] {
-  const prefix = `${params.cluster}:${params.walletAddress}:${params.sessionId}:`;
+  const prefix = `${params.cluster}:${normalizeWalletAddress(params.walletAddress)}:${params.sessionId}:`;
   return Object.entries(readAll())
     .filter(([key, value]) => key.startsWith(prefix) && isValidRecord(value))
     .map(([, value]) => value);

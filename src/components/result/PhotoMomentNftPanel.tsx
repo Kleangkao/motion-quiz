@@ -6,8 +6,11 @@ import { mintPhotoMomentNft, validateMintPrerequisites } from '@/nft/photoMoment
 import type { RecordedScoreReceipt } from '@/storage/scoreRecordStorage';
 import {
   getPhotoMomentNftRecord,
+  hasPhotoMomentMintForSession,
+  listPhotoMomentMintsForSessionOnCluster,
   savePhotoMomentNftRecord,
 } from '@/storage/photoMomentNftStorage';
+import type { SolanaCluster } from '@shared/scoreReceipt';
 import type { LessonPack, ResultSession } from '@/storage/types';
 import { defaultPhotoIndex } from '@/utils/composeResultMoment';
 
@@ -25,6 +28,12 @@ type MintUiState =
   | 'minting'
   | 'error';
 
+function initialPhotoIndex(sessionId: string, cluster: SolanaCluster, photoCount: number): number {
+  const stored = listPhotoMomentMintsForSessionOnCluster({ cluster, sessionId });
+  if (stored.length === 1) return stored[0].photoIndex;
+  return defaultPhotoIndex(photoCount);
+}
+
 export function PhotoMomentNftPanel({
   session,
   lesson,
@@ -34,6 +43,7 @@ export function PhotoMomentNftPanel({
   const {
     address,
     connecting,
+    reconnecting,
     requestConnect,
     sendTransaction,
     supportsTransactions,
@@ -44,13 +54,22 @@ export function PhotoMomentNftPanel({
   const clusterText = configResult.ok ? configResult.config.clusterLabel : clusterLabel('devnet');
 
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(() =>
-    defaultPhotoIndex(sessionPhotos.length),
+    initialPhotoIndex(session.id, cluster, sessionPhotos.length),
   );
   const [mintState, setMintState] = useState<MintUiState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [mintRefresh, setMintRefresh] = useState(0);
 
   const selectedPhoto = sessionPhotos[selectedPhotoIndex] ?? null;
+
+  const sessionMintExists = useMemo(() => {
+    void mintRefresh;
+    return hasPhotoMomentMintForSession({
+      cluster,
+      sessionId: session.id,
+      photoIndex: selectedPhotoIndex,
+    });
+  }, [cluster, session.id, selectedPhotoIndex, mintRefresh]);
 
   const minted = useMemo(() => {
     void mintRefresh;
@@ -83,7 +102,7 @@ export function PhotoMomentNftPanel({
     );
   }
 
-  if (sessionPhotos.length === 0) {
+  if (sessionPhotos.length === 0 && !sessionMintExists) {
     return null;
   }
 
@@ -155,6 +174,7 @@ export function PhotoMomentNftPanel({
   };
 
   const showMinted = Boolean(minted);
+  const walletPending = reconnecting || connecting;
 
   return (
     <div className="glass-card p-5 space-y-4">
@@ -218,10 +238,14 @@ export function PhotoMomentNftPanel({
             </a>
           </div>
         </div>
+      ) : walletPending ? (
+        <p className="text-xs text-white/50">Restoring wallet connection…</p>
       ) : !address ? (
         <div className="space-y-3">
           <p className="text-xs text-white/50">
-            Connect wallet and record your score to unlock minting.
+            {sessionMintExists
+              ? 'Connect your wallet to view your minted Photo Moment NFT.'
+              : 'Connect wallet and record your score to unlock minting.'}
           </p>
           <button onClick={() => requestConnect().catch(() => {})} disabled={connecting} className="btn btn-primary btn-lg w-full">
             {connecting ? 'Connecting…' : 'Connect Wallet'}
@@ -229,6 +253,10 @@ export function PhotoMomentNftPanel({
         </div>
       ) : !supportsTransactions ? (
         <p className="text-xs text-amber-300/90">This wallet cannot send mint transactions yet.</p>
+      ) : sessionMintExists && !minted ? (
+        <p className="text-xs text-white/50">
+          This Photo Moment was minted from another wallet. Connect the wallet that recorded the mint.
+        </p>
       ) : !prereq.ok ? (
         <p className="text-xs text-white/50">{prereq.message}</p>
       ) : (

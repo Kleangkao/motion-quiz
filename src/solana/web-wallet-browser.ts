@@ -102,6 +102,28 @@ export async function connectBrowserWallet(id: BrowserWalletId): Promise<string>
   return address;
 }
 
+/** Reconnect only when the wallet extension already trusts this site. Never prompts for signatures. */
+export async function tryAutoConnectBrowserWallet(id: BrowserWalletId): Promise<string | null> {
+  const provider = getBrowserWalletProvider(id);
+  if (!provider) return null;
+
+  const existing = getWalletAddressString(provider.publicKey);
+  if (existing) return existing;
+
+  try {
+    const connect = provider.connect as (
+      options?: { onlyIfTrusted?: boolean },
+    ) => Promise<{ publicKey?: PublicKeyLike | null }>;
+    const result = await connect({ onlyIfTrusted: true });
+    return (
+      getWalletAddressString(result?.publicKey) ??
+      getWalletAddressString(provider.publicKey)
+    );
+  } catch {
+    return null;
+  }
+}
+
 export async function disconnectBrowserWallet(id: BrowserWalletId): Promise<void> {
   const provider = getBrowserWalletProvider(id);
   if (provider) await provider.disconnect();

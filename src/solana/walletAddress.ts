@@ -56,3 +56,7 @@ export function shortenWalletAddress(
 export function walletAccountAddress(account: WalletStandardAccountLike | null | undefined): string | null {
   return getWalletAddressString(account);
 }
+
+export function normalizeWalletAddress(address: string): string {
+  return address.trim();
+}
