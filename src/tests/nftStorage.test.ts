@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { buildStorageObjectPath } from '@/nft/nftMetadata';
 import {
   formatPhotoMomentMintError,
+  isStorageDuplicateError,
   preparePhotoMomentNftAssets,
   uploadPhotoMomentImage,
   uploadPhotoMomentMetadata,
@@ -40,7 +41,11 @@ describe('nftStorage', () => {
   });
 
   it('upload path includes cluster pack wallet and session', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => '',
+    });
     vi.stubGlobal('fetch', fetchMock);
 
     const result = await uploadPhotoMomentImage({
@@ -102,6 +107,93 @@ describe('nftStorage', () => {
         }),
     );
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('reuses public image URL on production HTTP 400 with statusCode 409 body', async () => {
+    const duplicateBody =
+      '{"statusCode":"409","error":"Duplicate","message":"The resource already exists"}';
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: async () => duplicateBody,
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await uploadPhotoMomentImage({
+      dataUrl: 'data:image/png;base64,YWJj',
+      cluster: 'mainnet-beta',
+      packId: 'islanddao-challenge',
+      walletAddress: 'Wallet111111111111111111111111111111111111111',
+      sessionId: 'session-abc',
+      photoIndex: 0,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.url).toContain('photo-1.png');
+  });
+
+  it('reuses public metadata URL on production HTTP 400 with statusCode 409 body', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: async () =>
+        '{"statusCode":"409","error":"Duplicate","message":"The resource already exists"}',
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await uploadPhotoMomentMetadata({
+      metadata: {
+        name: 'Photo Moment',
+        symbol: 'MOTION',
+        description: 'Test',
+        image: 'https://example.com/image.png',
+        attributes: [],
+      },
+      cluster: 'mainnet-beta',
+      packId: 'islanddao-challenge',
+      walletAddress: 'Wallet111111111111111111111111111111111111111',
+      sessionId: 'session-abc',
+      photoIndex: 1,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.url).toContain('photo-2.json');
+  });
+
+  it('preparePhotoMomentNftAssets continues on production duplicate shape for both uploads', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: async () =>
+        '{"statusCode":"409","error":"Duplicate","message":"The resource already exists"}',
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await preparePhotoMomentNftAssets({
+      dataUrl: 'data:image/png;base64,YWJj',
+      cluster: 'mainnet-beta',
+      packId: 'islanddao-challenge',
+      packTitle: 'IslandDAO Challenge',
+      sessionId: 'session-abc',
+      walletAddress: 'Wallet111111111111111111111111111111111111111',
+      score: 80,
+      total: 10,
+      accuracy: 80,
+      durationMs: 300000,
+      scoreReceiptTx: 'tx-score',
+      capturedAt: '2026-01-01T00:00:00.000Z',
+      photoIndex: 0,
+      imageUrl: '',
+      externalUrl: 'https://motion-quiz.vercel.app',
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.assets.imageUrl).toContain('photo-1.png');
+    expect(result.assets.metadataUrl).toContain('photo-1.json');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('reuses public metadata URL when upload returns 409 Duplicate', async () => {
@@ -171,7 +263,7 @@ describe('nftStorage', () => {
   it('does not upsert when retrying after interrupted upload', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,
-      status: 409,
+      status: 400,
       text: async () => '{"statusCode":"409","error":"Duplicate"}',
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -189,8 +281,43 @@ describe('nftStorage', () => {
   });
 });
 
+describe('isStorageDuplicateError', () => {
+  const productionJson =
+    '{"statusCode":"409","error":"Duplicate","message":"The resource already exists"}';
+
+  it('detects production JSON string error message', () => {
+    expect(isStorageDuplicateError(productionJson)).toBe(true);
+  });
+
+  it('detects statusCode as string "409"', () => {
+    expect(isStorageDuplicateError({ statusCode: '409', error: 'Duplicate' })).toBe(true);
+  });
+
+  it('detects statusCode as number 409', () => {
+    expect(isStorageDuplicateError({ statusCode: 409, error: 'Duplicate' })).toBe(true);
+  });
+
+  it('detects HTTP status 409 on object', () => {
+    expect(isStorageDuplicateError({ status: 409 })).toBe(true);
+  });
+
+  it('detects message-only duplicate', () => {
+    expect(isStorageDuplicateError('The resource already exists')).toBe(true);
+    expect(isStorageDuplicateError('Asset Already Exists')).toBe(true);
+  });
+
+  it('detects Error whose message is JSON duplicate', () => {
+    expect(isStorageDuplicateError(new Error(productionJson))).toBe(true);
+  });
+
+  it('returns false for unrelated errors', () => {
+    expect(isStorageDuplicateError('{"statusCode":"404","error":"Not Found"}')).toBe(false);
+    expect(isStorageDuplicateError({ statusCode: 500, message: 'Internal error' })).toBe(false);
+  });
+});
+
 describe('formatPhotoMomentMintError', () => {
-  it('maps raw 409 JSON to friendly copy', () => {
+  it('sanitizes duplicate JSON that escapes upload handling', () => {
     expect(
       formatPhotoMomentMintError(
         '{"statusCode":"409","error":"Duplicate","message":"The resource already exists"}',

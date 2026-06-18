@@ -598,7 +598,7 @@ describe('PhotoMomentNftPanel', () => {
     expect(document.body.textContent).toContain('Mint selected Photo Moment');
   });
 
-  it('shows friendly error instead of raw 409 JSON from upload failure', async () => {
+  it('sanitizes duplicate JSON if it reaches the panel from a non-upload failure', async () => {
     vi.mocked(mintPhotoMomentNft).mockRejectedValue(
       new Error(
         '{"statusCode":"409","error":"Duplicate","message":"The resource already exists"}',

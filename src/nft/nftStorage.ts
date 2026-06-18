@@ -18,6 +18,93 @@ function publicObjectUrl(objectPath: string): string | null {
   return `${base.replace(/\/$/, '')}/storage/v1/object/public/${NFT_ASSETS_BUCKET}/${objectPath}`;
 }
 
+function parseJsonObject(value: string): Record<string, unknown> | null {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizedStatusCode(value: unknown): number | null {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && /^\d+$/.test(value)) return Number(value);
+  return null;
+}
+
+function isDuplicatePayload(obj: Record<string, unknown>): boolean {
+  if (normalizedStatusCode(obj.statusCode) === 409) return true;
+  if (normalizedStatusCode(obj.httpStatusCode) === 409) return true;
+  if (normalizedStatusCode(obj.status) === 409) return true;
+
+  const code = typeof obj.code === 'string' ? obj.code.toLowerCase() : '';
+  if (
+    code === 'duplicate' ||
+    code === 'resourcealreadyexists' ||
+    code === 'keyalreadyexists' ||
+    code === 'already_exists'
+  ) {
+    return true;
+  }
+
+  const error = typeof obj.error === 'string' ? obj.error.toLowerCase() : '';
+  if (error === 'duplicate') return true;
+
+  const message = typeof obj.message === 'string' ? obj.message.toLowerCase() : '';
+  if (message.includes('resource already exists') || message.includes('asset already exists')) {
+    return true;
+  }
+
+  return false;
+}
+
+/** Detect Supabase Storage duplicate responses across HTTP/body/error-object shapes. */
+export function isStorageDuplicateError(
+  error:
+    | string
+    | Error
+    | {
+        status?: number;
+        statusCode?: number | string;
+        httpStatusCode?: number;
+        code?: string;
+        error?: string;
+        message?: string;
+      }
+    | null
+    | undefined,
+): boolean {
+  if (error == null) return false;
+
+  if (typeof error === 'string') {
+    const trimmed = error.trim();
+    if (!trimmed) return false;
+    const parsed = parseJsonObject(trimmed);
+    if (parsed && isDuplicatePayload(parsed)) return true;
+    const lower = trimmed.toLowerCase();
+    if (lower.includes('resource already exists') || lower.includes('asset already exists')) {
+      return true;
+    }
+    if (lower.includes('"statuscode":"409"') || lower.includes('"statuscode":409')) return true;
+    if (lower.includes('"error":"duplicate"')) return true;
+    return false;
+  }
+
+  if (error instanceof Error) {
+    return isStorageDuplicateError(error.message);
+  }
+
+  if (typeof error === 'object') {
+    if (isDuplicatePayload(error as Record<string, unknown>)) return true;
+    if (typeof error.message === 'string' && isStorageDuplicateError(error.message)) return true;
+  }
+
+  return false;
+}
+
 async function uploadObject(
   objectPath: string,
   body: Blob | string,
@@ -31,26 +118,37 @@ async function uploadObject(
   }
 
   const url = `${base.replace(/\/$/, '')}/storage/v1/object/${NFT_ASSETS_BUCKET}/${objectPath}`;
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      apikey: anonKey,
-      Authorization: `Bearer ${anonKey}`,
-      'Content-Type': contentType,
-      'x-upsert': upsert ? 'true' : 'false',
-    },
-    body,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+        'Content-Type': contentType,
+        'x-upsert': upsert ? 'true' : 'false',
+      },
+      body,
+    });
+  } catch (err) {
+    return { ok: false, message: err instanceof Error ? err.message : String(err) };
+  }
+
+  const text = await response.text().catch(() => '');
 
   if (response.ok) {
     return { ok: true };
   }
 
-  if (response.status === 409) {
+  if (response.status === 409 || isStorageDuplicateError(text)) {
     return { ok: true, reusedExisting: true };
   }
 
-  const text = await response.text().catch(() => '');
+  const parsed = parseJsonObject(text);
+  if (parsed && isStorageDuplicateError(parsed)) {
+    return { ok: true, reusedExisting: true };
+  }
+
   if (response.status === 404) {
     return { ok: false, message: 'NFT storage bucket is missing. Apply the Supabase migration.' };
   }
@@ -74,8 +172,8 @@ export function formatPhotoMomentMintError(message: string): string {
   }
 
   try {
-    const parsed = JSON.parse(trimmed) as { statusCode?: number; message?: string };
-    if (parsed.statusCode === 409) {
+    const parsed = JSON.parse(trimmed) as { statusCode?: number | string; message?: string };
+    if (normalizedStatusCode(parsed.statusCode) === 409) {
       return 'A previous upload was interrupted. Please try minting again.';
     }
     if (typeof parsed.message === 'string' && parsed.message.length > 0) {
