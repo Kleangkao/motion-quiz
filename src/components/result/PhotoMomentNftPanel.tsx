@@ -3,6 +3,7 @@ import { useWallet, shortenAddress } from '@/solana/WalletProvider';
 import { getSolanaAppConfig, clusterLabel } from '@/solana/solanaConfig';
 import { solanaExplorerAddressUrl, solanaExplorerTxUrl } from '@/solana/explorer';
 import { mintPhotoMomentNft, validateMintPrerequisites } from '@/nft/photoMomentNftClient';
+import { formatPhotoMomentMintError } from '@/nft/nftStorage';
 import type { RecordedScoreReceipt } from '@/storage/scoreRecordStorage';
 import {
   getPhotoMomentNftRecord,
@@ -274,7 +275,7 @@ export function PhotoMomentNftPanel({
       setMintSuccess(record);
     } catch (e) {
       if (mintFlowGeneration.current !== generation) return;
-      setError(e instanceof Error ? e.message : String(e));
+      setError(formatPhotoMomentMintError(e instanceof Error ? e.message : String(e)));
       setMintState('error');
       setWalletApprovalSlow(false);
     }

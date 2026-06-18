@@ -23,7 +23,7 @@ async function uploadObject(
   body: Blob | string,
   contentType: string,
   upsert: boolean,
-): Promise<{ ok: true } | { ok: false; message: string }> {
+): Promise<{ ok: true; reusedExisting?: boolean } | { ok: false; message: string }> {
   const base = getSupabaseUrl();
   const anonKey = getSupabaseAnonKey();
   if (!base || !anonKey) {
@@ -42,18 +42,58 @@ async function uploadObject(
     body,
   });
 
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    if (response.status === 404) {
-      return { ok: false, message: 'NFT storage bucket is missing. Apply the Supabase migration.' };
-    }
-    if (response.status === 401 || response.status === 403) {
-      return { ok: false, message: 'NFT storage upload is not permitted. Check bucket policies.' };
-    }
-    return { ok: false, message: text || 'Failed to upload NFT asset.' };
+  if (response.ok) {
+    return { ok: true };
   }
 
-  return { ok: true };
+  if (response.status === 409) {
+    return { ok: true, reusedExisting: true };
+  }
+
+  const text = await response.text().catch(() => '');
+  if (response.status === 404) {
+    return { ok: false, message: 'NFT storage bucket is missing. Apply the Supabase migration.' };
+  }
+  if (response.status === 401 || response.status === 403) {
+    return { ok: false, message: 'NFT storage upload is not permitted. Check bucket policies.' };
+  }
+  return { ok: false, message: text || 'Failed to upload NFT asset.' };
+}
+
+/** Map raw upload/mint errors to readable copy (never show raw JSON blobs). */
+export function formatPhotoMomentMintError(message: string): string {
+  const trimmed = message.trim();
+  if (!trimmed) return 'NFT mint failed. Please try again.';
+
+  if (/failed to fetch|networkerror|load failed/i.test(trimmed)) {
+    return 'Network error while uploading NFT assets. Check your connection and try again.';
+  }
+
+  if (trimmed.includes('Duplicate') || trimmed.includes('"statusCode":"409"')) {
+    return 'A previous upload was interrupted. Please try minting again.';
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as { statusCode?: number; message?: string };
+    if (parsed.statusCode === 409) {
+      return 'A previous upload was interrupted. Please try minting again.';
+    }
+    if (typeof parsed.message === 'string' && parsed.message.length > 0) {
+      return `NFT mint failed: ${parsed.message}`;
+    }
+  } catch {
+    // not JSON — use trimmed text below
+  }
+
+  return trimmed;
+}
+
+async function finishUpload(path: string): Promise<
+  { ok: true; path: string; url: string } | { ok: false; message: string }
+> {
+  const url = publicObjectUrl(path);
+  if (!url) return { ok: false, message: 'Could not build public asset URL.' };
+  return { ok: true, path, url };
 }
 
 export async function uploadPhotoMomentImage(params: {
@@ -87,9 +127,7 @@ export async function uploadPhotoMomentImage(params: {
   const uploaded = await uploadObject(path, blob, blob.type, false);
   if (!uploaded.ok) return { ok: false, message: uploaded.message };
 
-  const url = publicObjectUrl(path);
-  if (!url) return { ok: false, message: 'Could not build public image URL.' };
-  return { ok: true, path, url };
+  return finishUpload(path);
 }
 
 export async function uploadPhotoMomentMetadata(params: {
@@ -116,9 +154,7 @@ export async function uploadPhotoMomentMetadata(params: {
   const uploaded = await uploadObject(path, body, 'application/json', false);
   if (!uploaded.ok) return { ok: false, message: uploaded.message };
 
-  const url = publicObjectUrl(path);
-  if (!url) return { ok: false, message: 'Could not build public metadata URL.' };
-  return { ok: true, path, url };
+  return finishUpload(path);
 }
 
 export async function preparePhotoMomentNftAssets(

@@ -598,6 +598,25 @@ describe('PhotoMomentNftPanel', () => {
     expect(document.body.textContent).toContain('Mint selected Photo Moment');
   });
 
+  it('shows friendly error instead of raw 409 JSON from upload failure', async () => {
+    vi.mocked(mintPhotoMomentNft).mockRejectedValue(
+      new Error(
+        '{"statusCode":"409","error":"Duplicate","message":"The resource already exists"}',
+      ),
+    );
+
+    renderPanel(currentReceipt);
+    clickMintButton();
+
+    await waitFor(() => {
+      expect(document.body.textContent).toContain(
+        'A previous upload was interrupted. Please try minting again.',
+      );
+    });
+    expect(document.body.textContent).not.toContain('"statusCode":"409"');
+    expect(savePhotoMomentNftRecord).not.toHaveBeenCalled();
+  });
+
   it('does not save mint record if user reset before wallet resolves', async () => {
     vi.useFakeTimers();
     let resolveMint: (value: typeof mintSuccessResult) => void = () => {};
