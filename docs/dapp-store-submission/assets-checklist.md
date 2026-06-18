@@ -39,7 +39,8 @@ Reference-only emulator captures (if taken) live in `_screenshots-temp/` — **g
 | Release notes | Draft | `metadata-draft.md` |
 | Reviewer notes | Draft | `metadata-draft.md`, `reviewer-test-instructions.md` |
 | Website | Ready | https://motion-quiz.vercel.app |
-| Privacy policy URL | Ready after deploy | https://motion-quiz.vercel.app/privacy.html |
+| Privacy policy URL | Ready | https://motion-quiz.vercel.app/privacy.html |
+| Terms of Use URL | Ready | https://motion-quiz.vercel.app/terms.html |
 | Support email | Ready | jamesbitarcade@gmail.com |
 | Category | Draft | Games / Education |
 

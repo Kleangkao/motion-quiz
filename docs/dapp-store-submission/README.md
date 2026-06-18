@@ -30,6 +30,12 @@ Served at: **https://motion-quiz.vercel.app/privacy.html** (after deploy)
 
 Source: `public/privacy.html`
 
+## Terms of Use
+
+Served at: **https://motion-quiz.vercel.app/terms.html** (after deploy)
+
+Source: `public/terms.html`
+
 ## What is intentionally **not** in git
 
 - Release keystore and `twa/signing.properties`

@@ -57,6 +57,10 @@ jamesbitarcade@gmail.com
 
 https://motion-quiz.vercel.app/privacy.html
 
+## Terms of Use URL
+
+https://motion-quiz.vercel.app/terms.html
+
 ## Release notes (draft — v1.0.0)
 
 - Initial public release.
