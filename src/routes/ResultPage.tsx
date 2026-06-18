@@ -8,8 +8,10 @@ import { ErrorMessage } from '@/components/common/ErrorMessage';
 import { SolanaScorePanel } from '@/components/result/SolanaScorePanel';
 import { GameMomentPanel } from '@/components/result/GameMomentPanel';
 import { SessionPhotoGallery } from '@/components/result/SessionPhotoGallery';
+import { PhotoMomentNftPanel } from '@/components/result/PhotoMomentNftPanel';
 import { getSessionPhotos } from '@/game/sessionPhotoCache';
 import { getLesson } from '@/storage/lessonStorage';
+import { getRecordedScore, type RecordedScoreReceipt } from '@/storage/scoreRecordStorage';
 import type { LessonPack } from '@/storage/types';
 
 export function ResultPage() {
@@ -19,6 +21,7 @@ export function ResultPage() {
   const [session, setSession] = useState<ResultSession | null>(null);
   const [lesson, setLesson] = useState<LessonPack | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recordedScore, setRecordedScore] = useState<RecordedScoreReceipt | null>(null);
 
   const sessionPhotos = useMemo(() => {
     const fromNav = (location.state as { sessionPhotos?: string[] } | null)?.sessionPhotos;
@@ -34,6 +37,14 @@ export function ResultPage() {
         setLoading(false);
       });
     }
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!sessionId) {
+      setRecordedScore(null);
+      return;
+    }
+    setRecordedScore(getRecordedScore(sessionId));
   }, [sessionId]);
 
   useEffect(() => {
@@ -80,11 +91,24 @@ export function ResultPage() {
           ))}
         </div>
 
-        <SolanaScorePanel session={session} lesson={lesson} onUpdated={setSession} />
+        <SolanaScorePanel
+          session={session}
+          lesson={lesson}
+          onUpdated={setSession}
+          onScoreRecorded={setRecordedScore}
+        />
 
         {sessionPhotos.length > 0 && (
           <SessionPhotoGallery photos={sessionPhotos} sessionId={session.id} />
         )}
+
+        <PhotoMomentNftPanel
+          key={session.id}
+          session={session}
+          lesson={lesson}
+          sessionPhotos={sessionPhotos}
+          recordedScore={recordedScore}
+        />
 
         <GameMomentPanel session={session} sessionPhotos={sessionPhotos} />
 

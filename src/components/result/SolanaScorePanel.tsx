@@ -12,7 +12,11 @@ import {
 import { buildScoreReceiptTransaction } from '@/solana/scoreReceiptTransaction';
 import { verifyScoreReceipt } from '@/solana/scoreReceiptVerifier';
 import { solanaExplorerTxUrl } from '@/solana/explorer';
-import { getRecordedScore, saveRecordedScore } from '@/storage/scoreRecordStorage';
+import {
+  getRecordedScore,
+  saveRecordedScore,
+  type RecordedScoreReceipt,
+} from '@/storage/scoreRecordStorage';
 import { buildScoreProofMessage, encodeScoreProof } from '@/solana/scoreProof';
 import { updateResultSession } from '@/storage/resultStorage';
 
@@ -20,11 +24,12 @@ interface Props {
   session: ResultSession;
   lesson: LessonPack | null;
   onUpdated: (session: ResultSession) => void;
+  onScoreRecorded?: (record: RecordedScoreReceipt) => void;
 }
 
 type RecordState = 'idle' | 'recording' | 'recorded' | 'error';
 
-export function SolanaScorePanel({ session, lesson, onUpdated }: Props) {
+export function SolanaScorePanel({ session, lesson, onUpdated, onScoreRecorded }: Props) {
   const {
     address,
     connecting,
@@ -51,8 +56,9 @@ export function SolanaScorePanel({ session, lesson, onUpdated }: Props) {
     if (saved?.verified && saved.txSignature) {
       setTxSignature(saved.txSignature);
       setRecordState('recorded');
+      onScoreRecorded?.(saved);
     }
-  }, [session.id]);
+  }, [session.id, onScoreRecorded]);
 
   const handleConnect = () => {
     requestConnect().catch(() => {
@@ -84,7 +90,7 @@ export function SolanaScorePanel({ session, lesson, onUpdated }: Props) {
         throw new Error(verifyResult.error);
       }
 
-      saveRecordedScore({
+      const record: RecordedScoreReceipt = {
         sessionId: session.id,
         txSignature: signature,
         verified: true,
@@ -92,10 +98,12 @@ export function SolanaScorePanel({ session, lesson, onUpdated }: Props) {
         packId: lesson.id,
         packContentHash: payload.packContentHash,
         recordedAt: new Date().toISOString(),
-      });
+      };
+      saveRecordedScore(record);
 
       setTxSignature(signature);
       setRecordState('recorded');
+      onScoreRecorded?.(record);
     } catch (error) {
       setRecordError(error instanceof Error ? error.message : String(error));
       setRecordState('error');

@@ -5,3 +5,9 @@ export function solanaExplorerTxUrl(signature: string, cluster: SolanaCluster = 
   if (cluster === 'devnet') return `${base}?cluster=devnet`;
   return base;
 }
+
+export function solanaExplorerAddressUrl(address: string, cluster: SolanaCluster = 'devnet'): string {
+  const base = `https://explorer.solana.com/address/${encodeURIComponent(address)}`;
+  if (cluster === 'devnet') return `${base}?cluster=devnet`;
+  return base;
+}
