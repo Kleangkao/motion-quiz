@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1e1b4b" />
+    <meta name="description" content="Privacy policy for Motion Quiz" />
+    <title>Privacy Policy — Motion Quiz</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #020617;
+        --card: #0f172a;
+        --text: #f8fafc;
+        --muted: #94a3b8;
+        --accent: #818cf8;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: 'Nunito', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.6;
+      }
+      main {
+        max-width: 42rem;
+        margin: 0 auto;
+        padding: 2rem 1.25rem 3rem;
+      }
+      h1 { font-size: 1.75rem; margin: 0 0 0.25rem; }
+      .updated { color: var(--muted); font-size: 0.875rem; margin-bottom: 2rem; }
+      h2 { font-size: 1.125rem; margin: 1.75rem 0 0.5rem; color: var(--accent); }
+      p, li { color: var(--text); }
+      li { margin: 0.35rem 0; }
+      a { color: var(--accent); }
+      .card {
+        background: var(--card);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        padding: 1rem 1.25rem;
+        margin-top: 1.5rem;
+      }
+      .muted { color: var(--muted); font-size: 0.9rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Privacy Policy</h1>
+      <p class="updated">Motion Quiz — last updated: June 2026 (draft for review)</p>
+
+      <p>
+        Motion Quiz (&ldquo;the app&rdquo;) is a camera-gesture quiz game with optional Solana score recording
+        and Photo Moment NFT features. This policy describes what data the app may use and store.
+      </p>
+
+      <h2>Camera and gameplay</h2>
+      <p>
+        The app may request access to your device <strong>camera</strong> to detect left/right gestures during
+        gameplay and to capture Photo Moments. Camera frames used for gesture detection are processed for
+        gameplay on your device. The app does not upload continuous video for gesture detection.
+      </p>
+
+      <h2>Photo Moments and NFT minting</h2>
+      <p>
+        If you choose to mint a Photo Moment NFT, the selected image (and related metadata you confirm) may be
+        uploaded to <strong>Supabase Storage</strong> and referenced in NFT metadata on Solana. Only moments you
+        explicitly select for minting are uploaded for that purpose.
+      </p>
+
+      <h2>Solana scores and leaderboard</h2>
+      <p>
+        If you record a score on Solana, the app helps you create an on-chain memo transaction through your
+        wallet. Verified score records stored in Supabase may include:
+      </p>
+      <ul>
+        <li>Your wallet address (public key)</li>
+        <li>Score, topic/pack, accuracy, and session timing</li>
+        <li>Solana cluster (e.g. devnet or mainnet-beta)</li>
+        <li>Transaction signature and block time</li>
+      </ul>
+      <p>
+        On-chain transactions are <strong>public</strong> on the Solana network. Leaderboard data may be visible
+        to other users of the app.
+      </p>
+
+      <h2>Wallet and keys</h2>
+      <p>
+        Wallet connection and transaction signing are handled by <strong>your wallet app</strong> (for example via
+        Solana Mobile Wallet Adapter on supported devices). Motion Quiz does <strong>not</strong> collect, store,
+        or transmit your private keys or seed phrases.
+      </p>
+
+      <h2>Local storage</h2>
+      <p>
+        The app may store quiz progress, settings, calibration preferences, and locally cached score/NFT session
+        data in your browser or WebView storage on your device.
+      </p>
+
+      <h2>Third-party services</h2>
+      <ul>
+        <li><strong>Supabase</strong> — score leaderboard, NFT asset storage, and related backend APIs when configured.</li>
+        <li><strong>Solana RPC providers</strong> — to read chain state and submit transactions you approve.</li>
+        <li><strong>Vercel</strong> — hosts the web app at <a href="https://motion-quiz.vercel.app/">motion-quiz.vercel.app</a>.</li>
+      </ul>
+
+      <h2>Children</h2>
+      <p>
+        The app is not directed at children under 13. If you believe we have collected data from a child, contact us
+        using the email below.
+      </p>
+
+      <h2>Changes</h2>
+      <p>
+        We may update this policy. The &ldquo;last updated&rdquo; date above will change when material updates are published.
+      </p>
+
+      <div class="card">
+        <h2 style="margin-top:0">Contact</h2>
+        <p class="muted">
+          Replace this placeholder before store submission:<br />
+          <strong>support@YOUR-DOMAIN.example</strong>
+        </p>
+        <p class="muted">
+          <a href="https://motion-quiz.vercel.app/">Return to Motion Quiz</a>
+        </p>
+      </div>
+    </main>
+  </body>
+</html>

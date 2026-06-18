@@ -29,6 +29,7 @@ signing.properties
 *.p12
 *.apk
 *.aab
+docs/dapp-store-submission/_screenshots-temp/
 
 # Vite / tooling cache
 .vite/

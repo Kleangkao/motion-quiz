@@ -2,6 +2,8 @@
 
 Trusted Web Activity wrapper for [https://motion-quiz.vercel.app](https://motion-quiz.vercel.app).
 
+**Package:** `com.islanddao.motionquiz`
+
 ## Prerequisites
 
 - JDK 17+ (Android Studio JBR works)
@@ -24,34 +26,50 @@ From repo root:
 
 ```bash
 # Regenerate Android project from twa-manifest.json
-npx @bubblewrap/cli update --directory=twa --skipVersionUpgrade
+npm run android:update
 
-# Debug APK (Gradle debug signing when --skipSigning)
-npx @bubblewrap/cli build --directory=twa --skipSigning
+# Debug APK
+npm run android:build:debug
+# Output: twa/app/build/outputs/apk/debug/app-debug.apk
 
-# Or Gradle directly:
-cd twa && ./gradlew assembleDebug
+# Release APK (requires local signing.properties)
+cd twa && gradlew.bat assembleRelease
+# Output: twa/app/build/outputs/apk/release/app-release.apk
 ```
 
-Debug APK output: `twa/app/build/outputs/apk/debug/app-debug.apk`
+## Release signing
 
-## Release signing (not configured)
+Release keystore lives **outside the repo** (e.g. `%USERPROFILE%\.android\motion-quiz-release.jks`).
 
-Release keystore is **not** created yet. Before dApp Store submission:
+Local Gradle reads **`twa/signing.properties`** (gitignored). Template: `twa/signing.properties.example`.
 
-1. Create release keystore (user approval required).
-2. Update `twa/twa-manifest.json` `signingKey.path` and `alias`.
-3. Add **release** SHA-256 to `public/.well-known/assetlinks.json` on production.
-4. Build signed release: `npx @bubblewrap/cli build --directory=twa`
+Helper (creates keystore + properties locally, never committed):
+
+```bash
+node scripts/create-release-keystore.mjs
+```
+
+**Do not commit:** keystore, passwords, `signing.properties`, or APK/AAB outputs.
 
 ## Digital Asset Links
 
-Verified TWA requires `assetlinks.json` on production matching the **release** certificate.
+Verified TWA requires production `/.well-known/assetlinks.json` matching the **release** certificate SHA-256.
 
-The repo may include a **debug-only** fingerprint for emulator smoke tests — replace before submission.
+Current production binds package `com.islanddao.motionquiz` to the release fingerprint (see `public/.well-known/assetlinks.json`).
 
-## Emulator install
+## Emulator vs real device
 
-```bash
-adb install -r twa/app/build/outputs/apk/debug/app-debug.apk
-```
+| Test area | Emulator | Real Android / Seeker |
+|-----------|----------|------------------------|
+| UI / navigation | Yes | Yes |
+| Verified TWA (no URL bar) | Yes (release APK) | Yes |
+| Camera / gestures | No (typical AVD: no front camera) | **Required** |
+| Wallet / score / NFT | No (no MWA wallet installed) | **Required** |
+
+See `docs/dapp-store-submission/known-limitations.md` for QA notes.
+
+## dApp Store submission
+
+Draft checklists and metadata: `docs/dapp-store-submission/`
+
+Privacy policy (after deploy): https://motion-quiz.vercel.app/privacy.html
