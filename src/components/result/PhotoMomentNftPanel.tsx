@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';import { useWallet, shortenAddress } from '@/solana/WalletProvider';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useWallet, shortenAddress } from '@/solana/WalletProvider';
 import { getSolanaAppConfig, clusterLabel } from '@/solana/solanaConfig';
 import { solanaExplorerAddressUrl, solanaExplorerTxUrl } from '@/solana/explorer';
 import { mintPhotoMomentNft, validateMintPrerequisites } from '@/nft/photoMomentNftClient';
@@ -13,6 +14,9 @@ import type { StoredPhotoMomentNft } from '@/nft/types';
 import type { SolanaCluster } from '@shared/scoreReceipt';
 import type { LessonPack, ResultSession } from '@/storage/types';
 import { defaultPhotoIndex } from '@/utils/composeResultMoment';
+
+/** How long to wait for wallet approve/reject before offering reset (ms). */
+export const NFT_WALLET_APPROVAL_TIMEOUT_MS = 75_000;
 
 interface Props {
   session: ResultSession;
@@ -100,6 +104,29 @@ export function PhotoMomentNftPanel({
   const [error, setError] = useState<string | null>(null);
   const [mintRefresh, setMintRefresh] = useState(0);
   const [mintSuccess, setMintSuccess] = useState<StoredPhotoMomentNft | null>(null);
+  const [walletApprovalSlow, setWalletApprovalSlow] = useState(false);
+  const mintFlowGeneration = useRef(0);
+
+  useEffect(() => {
+    if (mintState !== 'minting') {
+      setWalletApprovalSlow(false);
+      return undefined;
+    }
+
+    setWalletApprovalSlow(false);
+    const timer = window.setTimeout(() => {
+      setWalletApprovalSlow(true);
+    }, NFT_WALLET_APPROVAL_TIMEOUT_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [mintState]);
+
+  const handleResetMint = () => {
+    mintFlowGeneration.current += 1;
+    setMintState('idle');
+    setWalletApprovalSlow(false);
+    setError(null);
+  };
 
   const clusterMints = useMemo(() => {
     void mintRefresh;
@@ -184,7 +211,8 @@ export function PhotoMomentNftPanel({
       !selectedPhoto ||
       selectedStatus !== 'unminted' ||
       mintState === 'minting' ||
-      mintState === 'preparing'
+      mintState === 'preparing' ||
+      mintState === 'uploading'
     ) {
       return;
     }
@@ -202,6 +230,9 @@ export function PhotoMomentNftPanel({
     }
 
     setError(null);
+    setWalletApprovalSlow(false);
+    const generation = mintFlowGeneration.current + 1;
+    mintFlowGeneration.current = generation;
     setMintState('preparing');
 
     try {
@@ -214,8 +245,13 @@ export function PhotoMomentNftPanel({
         photoIndex: selectedPhotoIndex,
         recordedScore: check.recordedScore,
         sendTransaction,
-        onProgress: (phase) => setMintState(phase === 'uploading' ? 'uploading' : 'minting'),
+        onProgress: (phase) => {
+          if (mintFlowGeneration.current !== generation) return;
+          setMintState(phase === 'uploading' ? 'uploading' : 'minting');
+        },
       });
+
+      if (mintFlowGeneration.current !== generation) return;
 
       const record: StoredPhotoMomentNft = {
         sessionId: session.id,
@@ -234,10 +270,13 @@ export function PhotoMomentNftPanel({
 
       setMintRefresh((value) => value + 1);
       setMintState('idle');
+      setWalletApprovalSlow(false);
       setMintSuccess(record);
     } catch (e) {
+      if (mintFlowGeneration.current !== generation) return;
       setError(e instanceof Error ? e.message : String(e));
       setMintState('error');
+      setWalletApprovalSlow(false);
     }
   };
 
@@ -272,6 +311,12 @@ export function PhotoMomentNftPanel({
           Each Photo Moment can be minted once. Mints the selected photo — not the result card. Uses
           the score receipt from this session.
         </p>
+        {configResult.config.isProductionCluster && (
+          <p className="text-xs text-white/40 mt-1 leading-relaxed">
+            Mainnet NFT minting creates token and metadata accounts and requires SOL for rent and
+            network fees. Wallets may show unknown balance changes for NFT mints.
+          </p>
+        )}
       </div>
 
       {activeSuccessBanner && (
@@ -446,6 +491,26 @@ export function PhotoMomentNftPanel({
             <p className="text-xs text-white/45 mb-1">Connected wallet</p>
             <p className="text-sm text-white font-mono">{shortenAddress(address, 6)}</p>
           </div>
+          {mintState === 'minting' && !walletApprovalSlow && (
+            <p className="text-xs text-white/50 leading-relaxed">
+              Wallet opened. Approve or reject the transaction in your wallet.
+            </p>
+          )}
+          {walletApprovalSlow && (
+            <div className="space-y-2">
+              <p className="text-xs text-amber-300/90 leading-relaxed">
+                Wallet approval is taking longer than expected. If your wallet is stuck, close it and
+                try again.
+              </p>
+              <button
+                type="button"
+                onClick={handleResetMint}
+                className="btn btn-secondary btn-sm w-full"
+              >
+                Reset and try again
+              </button>
+            </div>
+          )}
           <button
             type="button"
             onClick={handleMint}
@@ -464,7 +529,7 @@ export function PhotoMomentNftPanel({
         </div>
       )}
 
-      {error && <p className="text-xs text-red-400">{error}</p>}
+      {error && mintState !== 'minting' && <p className="text-xs text-red-400">{error}</p>}
     </div>
   );
 }

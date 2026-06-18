@@ -1,7 +1,10 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { mintPhotoMomentNft } from '@/nft/photoMomentNftClient';
-import { PhotoMomentNftPanel } from '@/components/result/PhotoMomentNftPanel';
+import {
+  NFT_WALLET_APPROVAL_TIMEOUT_MS,
+  PhotoMomentNftPanel,
+} from '@/components/result/PhotoMomentNftPanel';
 import type { RecordedScoreReceipt } from '@/storage/scoreRecordStorage';
 import {
   getPhotoMomentNftRecord,
@@ -128,6 +131,37 @@ const mintRecordPhoto0: StoredPhotoMomentNft = {
 
 const twoPhotos = ['data:image/jpeg;base64,one', 'data:image/jpeg;base64,two'];
 
+const mintSuccessResult = {
+  txSignature: 'tx-mint',
+  mintAddress: 'Mint222222222222222222222222222222222222222',
+  metadataUri: 'https://example.com/meta.json',
+  imageUri: 'https://example.com/image.png',
+  cluster: 'devnet' as const,
+};
+
+function clickMintButton() {
+  fireEvent.click(
+    Array.from(document.querySelectorAll('button')).find((btn) =>
+      btn.textContent?.includes('Mint selected Photo Moment'),
+    )!,
+  );
+}
+
+async function flushMintProgress() {
+  await act(async () => {
+    await Promise.resolve();
+  });
+}
+
+function mockWalletPendingMint() {
+  vi.mocked(mintPhotoMomentNft).mockImplementation(async ({ onProgress }) => {
+    onProgress?.('uploading');
+    onProgress?.('minting');
+    await new Promise<void>(() => {});
+    return mintSuccessResult;
+  });
+}
+
 function renderPanel(
   recordedScore: RecordedScoreReceipt | null,
   sessionPhotos: string[] = ['data:image/jpeg;base64,abc'],
@@ -156,6 +190,7 @@ describe('PhotoMomentNftPanel', () => {
     vi.mocked(hasPhotoMomentMintForSession).mockReturnValue(false);
     vi.mocked(listPhotoMomentMintsForSessionOnCluster).mockReturnValue([]);
     vi.mocked(mintPhotoMomentNft).mockReset();
+    vi.mocked(savePhotoMomentNftRecord).mockClear();
     useWalletMock.mockReturnValue({
       address: WALLET,
       connecting: false,
@@ -454,5 +489,149 @@ describe('PhotoMomentNftPanel', () => {
     expect(document.body.textContent).toContain('All Photo Moments minted');
     expect(document.body.textContent).toContain('View NFT');
     expect(document.body.textContent).not.toContain('Mint selected Photo Moment');
+  });
+
+  it('shows wallet approval pending copy during mint', async () => {
+    mockWalletPendingMint();
+
+    renderPanel(currentReceipt);
+    clickMintButton();
+
+    await flushMintProgress();
+
+    expect(document.body.textContent).toContain(
+      'Wallet opened. Approve or reject the transaction in your wallet.',
+    );
+    expect(document.body.textContent).toContain('Minting on Solana devnet');
+  });
+
+  it('shows reset message after wallet approval timeout', async () => {
+    vi.useFakeTimers();
+    try {
+      mockWalletPendingMint();
+
+      renderPanel(currentReceipt);
+      clickMintButton();
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      expect(document.body.textContent).toContain('Wallet opened. Approve or reject');
+
+      await act(async () => {
+        vi.advanceTimersByTime(NFT_WALLET_APPROVAL_TIMEOUT_MS);
+      });
+
+      expect(document.body.textContent).toContain(
+        'Wallet approval is taking longer than expected. If your wallet is stuck, close it and try again.',
+      );
+      expect(screen.getByRole('button', { name: 'Reset and try again' })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reset returns UI to mintable state after wallet timeout', async () => {
+    vi.useFakeTimers();
+    try {
+      mockWalletPendingMint();
+
+      renderPanel(currentReceipt);
+      clickMintButton();
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      await act(async () => {
+        vi.advanceTimersByTime(NFT_WALLET_APPROVAL_TIMEOUT_MS);
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Reset and try again' }));
+
+      expect(document.body.textContent).toContain('Mint selected Photo Moment');
+      expect(document.body.textContent).not.toContain('Wallet opened. Approve or reject');
+      expect(document.body.textContent).not.toContain('Wallet approval is taking longer than expected');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('records minted state when wallet resolves after pending', async () => {
+    let resolveMint: (value: typeof mintSuccessResult) => void = () => {};
+    vi.mocked(mintPhotoMomentNft).mockImplementation(
+      ({ onProgress }) =>
+        new Promise((resolve) => {
+          onProgress?.('uploading');
+          onProgress?.('minting');
+          resolveMint = resolve;
+        }),
+    );
+
+    renderPanel(currentReceipt);
+    clickMintButton();
+
+    await flushMintProgress();
+
+    expect(document.body.textContent).toContain('Wallet opened. Approve or reject');
+
+    await act(async () => {
+      resolveMint(mintSuccessResult);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(document.body.textContent).toContain('Photo Moment minted');
+    });
+    expect(savePhotoMomentNftRecord).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows error and does not mark minted when wallet rejects', async () => {
+    vi.mocked(mintPhotoMomentNft).mockRejectedValue(new Error('User rejected the request.'));
+
+    renderPanel(currentReceipt);
+    clickMintButton();
+
+    await waitFor(() => {
+      expect(document.body.textContent).toContain('User rejected the request.');
+    });
+    expect(savePhotoMomentNftRecord).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain('Mint selected Photo Moment');
+  });
+
+  it('does not save mint record if user reset before wallet resolves', async () => {
+    vi.useFakeTimers();
+    let resolveMint: (value: typeof mintSuccessResult) => void = () => {};
+    try {
+      vi.mocked(mintPhotoMomentNft).mockImplementation(
+        ({ onProgress }) =>
+          new Promise((resolve) => {
+            onProgress?.('uploading');
+            onProgress?.('minting');
+            resolveMint = resolve;
+          }),
+      );
+
+      renderPanel(currentReceipt);
+      clickMintButton();
+      await act(async () => {
+        await Promise.resolve();
+      });
+
+      await act(async () => {
+        vi.advanceTimersByTime(NFT_WALLET_APPROVAL_TIMEOUT_MS);
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Reset and try again' }));
+
+      await act(async () => {
+        resolveMint(mintSuccessResult);
+        await Promise.resolve();
+      });
+
+      expect(savePhotoMomentNftRecord).not.toHaveBeenCalled();
+      expect(document.body.textContent).not.toContain('Photo Moment minted');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
