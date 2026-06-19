@@ -1,5 +1,6 @@
 import { getSupabaseAnonKey, getSupabaseUrl } from '@/solana/env';
 import {
+  assertMetadataUriWithinLimit,
   buildPhotoMomentMetadata,
   buildStorageObjectPath,
   dataUrlToBlob,
@@ -171,6 +172,14 @@ export function formatPhotoMomentMintError(message: string): string {
     return 'A previous upload was interrupted. Please try minting again.';
   }
 
+  if (/internal error/i.test(trimmed)) {
+    return 'Wallet could not send the NFT transaction. Please try again after refreshing. If the issue continues, contact support.';
+  }
+
+  if (/metadata uri exceeds/i.test(trimmed)) {
+    return 'NFT metadata URL is too long to mint on Solana. Please refresh and try again.';
+  }
+
   try {
     const parsed = JSON.parse(trimmed) as { statusCode?: number | string; message?: string };
     if (normalizedStatusCode(parsed.statusCode) === 409) {
@@ -201,6 +210,7 @@ export async function uploadPhotoMomentImage(params: {
   walletAddress: string;
   sessionId: string;
   photoIndex: number;
+  scoreReceiptTx?: string | null;
 }): Promise<{ ok: true; path: string; url: string } | { ok: false; message: string }> {
   const config = requireSupabaseForNft();
   if (!config.ok) return { ok: false, message: config.message };
@@ -220,6 +230,7 @@ export async function uploadPhotoMomentImage(params: {
     sessionId: params.sessionId,
     photoIndex: params.photoIndex,
     extension,
+    scoreReceiptTx: params.scoreReceiptTx,
   });
 
   const uploaded = await uploadObject(path, blob, blob.type, false);
@@ -235,6 +246,7 @@ export async function uploadPhotoMomentMetadata(params: {
   walletAddress: string;
   sessionId: string;
   photoIndex: number;
+  scoreReceiptTx?: string | null;
 }): Promise<{ ok: true; path: string; url: string } | { ok: false; message: string }> {
   const config = requireSupabaseForNft();
   if (!config.ok) return { ok: false, message: config.message };
@@ -246,6 +258,7 @@ export async function uploadPhotoMomentMetadata(params: {
     sessionId: params.sessionId,
     photoIndex: params.photoIndex,
     extension: 'json',
+    scoreReceiptTx: params.scoreReceiptTx,
   });
 
   const body = JSON.stringify(params.metadata, null, 2);
@@ -265,6 +278,7 @@ export async function preparePhotoMomentNftAssets(
     walletAddress: input.walletAddress,
     sessionId: input.sessionId,
     photoIndex: input.photoIndex,
+    scoreReceiptTx: input.scoreReceiptTx,
   });
   if (!imageUpload.ok) return { ok: false, message: imageUpload.message };
 
@@ -280,8 +294,18 @@ export async function preparePhotoMomentNftAssets(
     walletAddress: input.walletAddress,
     sessionId: input.sessionId,
     photoIndex: input.photoIndex,
+    scoreReceiptTx: input.scoreReceiptTx,
   });
   if (!metadataUpload.ok) return { ok: false, message: metadataUpload.message };
+
+  try {
+    assertMetadataUriWithinLimit(metadataUpload.url);
+  } catch (err) {
+    return {
+      ok: false,
+      message: err instanceof Error ? err.message : String(err),
+    };
+  }
 
   return {
     ok: true,

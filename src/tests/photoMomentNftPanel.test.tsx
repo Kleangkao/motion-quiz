@@ -617,6 +617,21 @@ describe('PhotoMomentNftPanel', () => {
     expect(savePhotoMomentNftRecord).not.toHaveBeenCalled();
   });
 
+  it('shows friendly copy when wallet returns Internal error', async () => {
+    vi.mocked(mintPhotoMomentNft).mockRejectedValue(new Error('Internal error'));
+
+    renderPanel(currentReceipt);
+    clickMintButton();
+
+    await waitFor(() => {
+      expect(document.body.textContent).toContain(
+        'Wallet could not send the NFT transaction. Please try again after refreshing.',
+      );
+    });
+    expect(document.body.textContent).not.toContain('Internal error');
+    expect(savePhotoMomentNftRecord).not.toHaveBeenCalled();
+  });
+
   it('does not save mint record if user reset before wallet resolves', async () => {
     vi.useFakeTimers();
     let resolveMint: (value: typeof mintSuccessResult) => void = () => {};

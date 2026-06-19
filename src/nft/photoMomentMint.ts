@@ -17,6 +17,7 @@ import {
 } from '@solana/web3.js';
 import type { SolanaCluster } from '@shared/scoreReceipt';
 import { NFT_DISPLAY_NAME, NFT_SYMBOL } from '@/nft/types';
+import { assertMetadataUriWithinLimit } from '@/nft/nftMetadata';
 import { getSolanaAppConfig } from '@/solana/solanaConfig';
 
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
@@ -67,6 +68,7 @@ export async function buildPhotoMomentMintTransaction(params: {
   if (!params.metadataUri.trim()) {
     throw new Error('Metadata URI is required before minting.');
   }
+  assertMetadataUriWithinLimit(params.metadataUri);
 
   const payer = new PublicKey(params.walletAddress);
   const mintKeypair = Keypair.generate();

@@ -1,10 +1,56 @@
 import {
+  NFT_ASSETS_BUCKET,
   NFT_DISPLAY_NAME,
   NFT_SYMBOL,
   type PhotoMomentMetadataInput,
   type PhotoMomentMetadataJson,
 } from '@/nft/types';
 import { clusterShortLabel } from '@/solana/solanaConfig';
+
+/** Metaplex Token Metadata on-chain URI field limit. */
+export const METADATA_URI_MAX_LENGTH = 200;
+
+function fnv1a64(input: string): bigint {
+  let hash = 0xcbf29ce484222325n;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= BigInt(input.charCodeAt(i));
+    hash = (hash * 0x100000001b3n) & 0xffffffffffffffffn;
+  }
+  return hash;
+}
+
+/** Short deterministic key for storage paths (hex, 32 chars). */
+export function buildPhotoMomentAssetKey(params: {
+  packId: string;
+  walletAddress: string;
+  sessionId: string;
+  photoIndex: number;
+  scoreReceiptTx?: string | null;
+}): string {
+  const seed = [
+    params.packId,
+    params.walletAddress.trim(),
+    params.sessionId,
+    String(params.photoIndex),
+    params.scoreReceiptTx?.trim() ?? '',
+  ].join('\0');
+  const h1 = fnv1a64(seed);
+  const h2 = fnv1a64(`${seed}\x01`);
+  return h1.toString(16).padStart(16, '0') + h2.toString(16).padStart(16, '0');
+}
+
+export function buildNftPublicObjectUrl(supabaseBaseUrl: string, objectPath: string): string {
+  return `${supabaseBaseUrl.replace(/\/$/, '')}/storage/v1/object/public/${NFT_ASSETS_BUCKET}/${objectPath}`;
+}
+
+export function assertMetadataUriWithinLimit(uri: string): void {
+  const trimmed = uri.trim();
+  if (trimmed.length > METADATA_URI_MAX_LENGTH) {
+    throw new Error(
+      `Metadata URI exceeds ${METADATA_URI_MAX_LENGTH} characters (${trimmed.length}). NFT mint cannot proceed.`,
+    );
+  }
+}
 
 export function buildPhotoMomentMetadata(input: PhotoMomentMetadataInput): PhotoMomentMetadataJson {
   const attributes: PhotoMomentMetadataJson['attributes'] = [
@@ -49,15 +95,14 @@ export function buildStorageObjectPath(params: {
   sessionId: string;
   photoIndex: number;
   extension: 'png' | 'jpg' | 'json';
+  scoreReceiptTx?: string | null;
 }): string {
-  const safePack = encodeURIComponent(params.packId);
-  const safeWallet = encodeURIComponent(params.walletAddress);
-  const safeSession = encodeURIComponent(params.sessionId);
-  const fileBase = `photo-${params.photoIndex + 1}`;
+  const assetKey = buildPhotoMomentAssetKey(params);
+  const photoFile = `p${params.photoIndex + 1}`;
   if (params.extension === 'json') {
-    return `${params.cluster}/${safePack}/${safeWallet}/${safeSession}/${fileBase}.json`;
+    return `${params.cluster}/n/${assetKey}/${photoFile}.json`;
   }
-  return `${params.cluster}/${safePack}/${safeWallet}/${safeSession}/${fileBase}.${params.extension}`;
+  return `${params.cluster}/n/${assetKey}/${photoFile}.${params.extension}`;
 }
 
 export function imageExtensionFromDataUrl(dataUrl: string): 'png' | 'jpg' | null {

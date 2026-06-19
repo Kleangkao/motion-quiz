@@ -40,7 +40,7 @@ describe('nftStorage', () => {
     expect(result.message).toMatch(/not configured/i);
   });
 
-  it('upload path includes cluster pack wallet and session', async () => {
+  it('upload path uses short cluster-prefixed asset key', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -58,16 +58,8 @@ describe('nftStorage', () => {
     });
 
     expect(result.ok).toBe(true);
-    const expectedPath = buildStorageObjectPath({
-      cluster: 'mainnet-beta',
-      packId: 'islanddao-challenge',
-      walletAddress: 'Wallet111111111111111111111111111111111111111',
-      sessionId: 'session-abc',
-      photoIndex: 1,
-      extension: 'png',
-    });
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining(expectedPath),
+      expect.stringMatching(/mainnet-beta\/n\/[0-9a-f]{32}\/p2\.png/),
       expect.objectContaining({
         headers: expect.objectContaining({ 'x-upsert': 'false' }),
       }),
@@ -130,7 +122,7 @@ describe('nftStorage', () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.url).toContain('photo-1.png');
+    expect(result.url).toContain('/p1.png');
   });
 
   it('reuses public metadata URL on production HTTP 400 with statusCode 409 body', async () => {
@@ -159,7 +151,7 @@ describe('nftStorage', () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.url).toContain('photo-2.json');
+    expect(result.url).toContain('/p2.json');
   });
 
   it('preparePhotoMomentNftAssets continues on production duplicate shape for both uploads', async () => {
@@ -191,8 +183,8 @@ describe('nftStorage', () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.assets.imageUrl).toContain('photo-1.png');
-    expect(result.assets.metadataUrl).toContain('photo-1.json');
+    expect(result.assets.imageUrl).toContain('/p1.png');
+    expect(result.assets.metadataUrl).toContain('/p1.json');
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
@@ -222,7 +214,7 @@ describe('nftStorage', () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.url).toContain('photo-2.json');
+    expect(result.url).toContain('/p2.json');
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -255,8 +247,8 @@ describe('nftStorage', () => {
 
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    expect(result.assets.imageUrl).toContain('photo-1.png');
-    expect(result.assets.metadataUrl).toContain('photo-1.json');
+    expect(result.assets.imageUrl).toContain('/p1.png');
+    expect(result.assets.metadataUrl).toContain('/p1.json');
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
@@ -327,5 +319,11 @@ describe('formatPhotoMomentMintError', () => {
 
   it('maps network errors to friendly copy', () => {
     expect(formatPhotoMomentMintError('Failed to fetch')).toMatch(/network error/i);
+  });
+
+  it('maps wallet Internal error to friendly copy', () => {
+    expect(formatPhotoMomentMintError('Internal error')).toBe(
+      'Wallet could not send the NFT transaction. Please try again after refreshing. If the issue continues, contact support.',
+    );
   });
 });

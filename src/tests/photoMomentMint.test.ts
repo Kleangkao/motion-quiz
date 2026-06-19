@@ -54,4 +54,15 @@ describe('photoMomentMint', () => {
       }),
     ).rejects.toThrow(/Metadata URI/);
   });
+
+  it('rejects metadata URI longer than the Metaplex limit', async () => {
+    await expect(
+      buildPhotoMomentMintTransaction({
+        walletAddress: PublicKey.default.toBase58(),
+        metadataUri: 'https://example.com/' + 'a'.repeat(200),
+        cluster: 'mainnet-beta',
+        rpcUrl: 'https://api.mainnet-beta.solana.com',
+      }),
+    ).rejects.toThrow(/exceeds 200/i);
+  });
 });
