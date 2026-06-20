@@ -64,14 +64,17 @@ const DELETE_MS = 45;
 const PAUSE_MS = 1400;
 export const EMPTY_HOLD_MS = 500;
 
-const PREFIX_CLASS = 'shrink-0 text-sm sm:text-base font-medium text-white/40';
-const SEPARATOR_CLASS = 'shrink-0 text-white/25';
+const PREFIX_CLASS = 'text-sm sm:text-base font-medium leading-none text-white/40';
+const SEPARATOR_CLASS = 'leading-none text-white/25';
+const LABEL_CLASS = 'inline-flex shrink-0 items-baseline gap-x-1.5 sm:gap-x-2';
 const HERO_CLASS =
   'flex w-full justify-center overflow-hidden px-1 min-h-[3.25rem] sm:min-h-[4.5rem]';
 const LINE_CLASS =
   'inline-flex w-full max-w-[min(100%,22rem)] sm:max-w-[min(100%,26rem)] items-baseline justify-start gap-x-1.5 sm:gap-x-2';
 const TOPIC_TEXT_CLASS =
   'text-[clamp(1.75rem,8vw,3rem)] font-black tracking-tight leading-none break-words';
+const TOPIC_SLOT_CLASS =
+  'inline-flex min-w-0 min-h-[clamp(1.75rem,8vw,3rem)] items-baseline leading-none';
 
 export function isTopicShortcutActive(displayed: string, phase: TeaserPhase): boolean {
   return displayed.length > 0 && phase !== 'emptyHold';
@@ -105,7 +108,7 @@ function usePrefersReducedMotion(): boolean {
 function TopicCaret({ color }: { color: string }) {
   return (
     <span
-      className="ml-px inline-block h-[0.85em] w-px translate-y-px animate-pulse"
+      className="ml-[0.08em] inline-block h-[0.9em] w-[0.07em] animate-caret-blink motion-reduce:animate-none motion-reduce:opacity-100"
       style={{ backgroundColor: color }}
       aria-hidden
     />
@@ -130,28 +133,28 @@ function TopicContent({
   onStart,
 }: TopicContentProps) {
   const content = (
-    <>
-      <span className={TOPIC_TEXT_CLASS} style={topicTextStyle(theme)}>
-        {text}
-      </span>
+    <span className={`inline-flex items-baseline ${TOPIC_TEXT_CLASS}`}>
+      <span style={topicTextStyle(theme)}>{text}</span>
       {showCaret && <TopicCaret color={theme.caretColor} />}
-    </>
+    </span>
   );
 
   if (clickable) {
     return (
-      <button
-        type="button"
-        onClick={onStart}
-        className="inline-flex min-w-0 max-w-full items-baseline cursor-pointer text-left hover:underline decoration-white/20 underline-offset-4"
-        aria-label={ariaLabel}
-      >
-        {content}
-      </button>
+      <span className={TOPIC_SLOT_CLASS}>
+        <button
+          type="button"
+          onClick={onStart}
+          className="inline-flex min-w-0 max-w-full cursor-pointer border-0 bg-transparent p-0 text-left leading-none align-baseline hover:underline decoration-white/20 underline-offset-4"
+          aria-label={ariaLabel}
+        >
+          {content}
+        </button>
+      </span>
     );
   }
 
-  return <span className="inline-flex min-w-0 max-w-full items-baseline">{content}</span>;
+  return <span className={TOPIC_SLOT_CLASS}>{content}</span>;
 }
 
 export function HomeMotionTeaser() {
@@ -213,8 +216,10 @@ export function HomeMotionTeaser() {
     return (
       <section className={HERO_CLASS} data-testid="home-motion-teaser">
         <p className={LINE_CLASS}>
-          <span className={PREFIX_CLASS}>Quiz</span>
-          <span className={SEPARATOR_CLASS}>·</span>
+          <span className={LABEL_CLASS}>
+            <span className={PREFIX_CLASS}>Quiz</span>
+            <span className={SEPARATOR_CLASS}>·</span>
+          </span>
           <TopicContent
             text={staticTopic.title}
             showCaret={false}
@@ -231,11 +236,13 @@ export function HomeMotionTeaser() {
   return (
     <section className={HERO_CLASS} data-testid="home-motion-teaser">
       <p className={LINE_CLASS}>
-        <span className={PREFIX_CLASS}>Quiz</span>
-        <span className={SEPARATOR_CLASS}>·</span>
+        <span className={LABEL_CLASS}>
+          <span className={PREFIX_CLASS}>Quiz</span>
+          <span className={SEPARATOR_CLASS}>·</span>
+        </span>
         <TopicContent
           text={displayed}
-          showCaret={displayed.length > 0}
+          showCaret
           theme={currentTopic}
           clickable={shortcutActive}
           ariaLabel={`Start ${fullTitle} quiz`}
