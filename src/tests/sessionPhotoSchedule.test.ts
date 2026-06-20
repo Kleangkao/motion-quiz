@@ -34,6 +34,9 @@ describe('sessionPhotoSchedule', () => {
     expect(scheduledPhotoSlotCount(2)).toBe(1);
     expect(scheduledPhotoSlotCount(3)).toBe(1);
     expect(scheduledPhotoSlotCount(4)).toBe(1);
+    expect(scheduledPhotoSlotCount(6)).toBe(2);
+    expect(scheduledPhotoSlotCount(7)).toBe(3);
     expect(scheduledPhotoSlotCount(8)).toBe(3);
+    expect(scheduledPhotoSlotCount(9)).toBe(4);
   });
 });
