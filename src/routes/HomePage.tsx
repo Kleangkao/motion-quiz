@@ -12,6 +12,7 @@ import type { LessonPack } from '@/storage/types';
 import { WalletHeaderButton } from '@/components/wallet/WalletHeaderButton';
 import { TopicPackIcon } from '@/components/play/TopicPackIcon';
 import { HomeMotionTeaser } from '@/components/home/HomeMotionTeaser';
+import { HomeMiniPreview } from '@/components/home/HomeMiniPreview';
 
 /** Hackathon polish: set true to restore Home quick-play topic cards. */
 export const SHOW_HOME_QUICK_PLAY = false;
@@ -56,8 +57,8 @@ export function HomePage() {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-indigo-950 to-purple-950 flex flex-col p-5 pb-8 gap-5 max-w-lg mx-auto">
-      <header className="pt-4 flex items-start justify-between gap-3">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-indigo-950 to-purple-950 flex flex-col p-5 pb-8 max-w-lg mx-auto">
+      <header className="pt-2 sm:pt-4 flex items-start justify-between gap-3 shrink-0">
         <div className="min-w-0">
           <h1 className="text-3xl font-black text-white tracking-tight">Motion Quiz</h1>
         </div>
@@ -66,57 +67,61 @@ export function HomePage() {
         </div>
       </header>
 
-      {SHOW_HOME_CONTINUE && lastLesson && (
-        <button
-          onClick={() => startPack(lastLesson)}
-          className="btn btn-primary btn-xl w-full"
-        >
-          ▶ Continue: {lastLesson.title}
-        </button>
-      )}
-
-      {SHOW_HOME_QUICK_PLAY && featuredLessons.length > 0 && (
-        <section className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-white/40">Quick play</p>
-          <div className="grid gap-2">
-            {featuredLessons.slice(0, 2).map((lesson) => (
-              <button
-                key={lesson.id}
-                onClick={() => startPack(lesson)}
-                className="glass-card p-4 text-left flex items-center gap-3 active:scale-[0.99] transition hover:bg-white/15"
-              >
-                <TopicPackIcon
-                  packId={lesson.id}
-                  icon={lesson.icon}
-                  title={lesson.title}
-                  size="sm"
-                />
-                <div className="font-bold text-white">{lesson.title}</div>
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <nav className="grid gap-3">
-        {primaryModes.map(({ path, emoji, title, desc }) => (
+      <div className="flex-1 flex flex-col justify-center gap-5 py-6 sm:py-8 min-h-0">
+        {SHOW_HOME_CONTINUE && lastLesson && (
           <button
-            key={path}
-            onClick={() => navigate(path)}
-            className="glass-card p-4 text-left flex items-center gap-4 active:scale-[0.99] transition hover:bg-white/15"
+            onClick={() => startPack(lastLesson)}
+            className="btn btn-primary btn-xl w-full"
           >
-            <span className="text-2xl">{emoji}</span>
-            <div>
-              <div className="font-bold text-white">{title}</div>
-              <div className="text-xs text-white/45">{desc}</div>
-            </div>
+            ▶ Continue: {lastLesson.title}
           </button>
-        ))}
-      </nav>
+        )}
 
-      {SHOW_HOME_MOTION_TEASER && <HomeMotionTeaser />}
+        {SHOW_HOME_QUICK_PLAY && featuredLessons.length > 0 && (
+          <section className="space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-white/40">Quick play</p>
+            <div className="grid gap-2">
+              {featuredLessons.slice(0, 2).map((lesson) => (
+                <button
+                  key={lesson.id}
+                  onClick={() => startPack(lesson)}
+                  className="glass-card p-4 text-left flex items-center gap-3 active:scale-[0.99] transition hover:bg-white/15"
+                >
+                  <TopicPackIcon
+                    packId={lesson.id}
+                    icon={lesson.icon}
+                    title={lesson.title}
+                    size="sm"
+                  />
+                  <div className="font-bold text-white">{lesson.title}</div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
-      <p className="text-xs text-white/30 text-center leading-relaxed">
+        <nav className="grid gap-3">
+          {primaryModes.map(({ path, emoji, title, desc }) => (
+            <button
+              key={path}
+              onClick={() => navigate(path)}
+              className="glass-card p-4 text-left flex items-center gap-4 active:scale-[0.99] transition hover:bg-white/15"
+            >
+              <span className="text-2xl">{emoji}</span>
+              <div>
+                <div className="font-bold text-white">{title}</div>
+                <div className="text-xs text-white/45">{desc}</div>
+              </div>
+            </button>
+          ))}
+        </nav>
+
+        {SHOW_HOME_MOTION_TEASER && <HomeMotionTeaser />}
+
+        <HomeMiniPreview />
+      </div>
+
+      <p className="text-xs text-white/30 text-center leading-relaxed shrink-0 mt-2">
         Camera processing stays on your device. Video is not uploaded. Wallet signing is off-chain only. No gas, no transfers.
       </p>
     </div>

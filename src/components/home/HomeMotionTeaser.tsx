@@ -25,6 +25,11 @@ const PREFIX_CLASS = 'text-xs text-white/35 font-normal';
 const SEPARATOR_CLASS = 'text-white/25';
 const TOPIC_CLASS =
   'text-base font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-violet-300 to-fuchsia-300';
+const TOPIC_SLOT_CLASS = `inline-flex min-w-[12ch] justify-center ${TOPIC_CLASS}`;
+
+export function isTopicShortcutActive(displayed: string, phase: TeaserPhase): boolean {
+  return displayed.length > 0 && phase !== 'emptyHold';
+}
 
 function usePrefersReducedMotion(): boolean {
   const [reduced, setReduced] = useState(false);
@@ -42,6 +47,15 @@ function usePrefersReducedMotion(): boolean {
   return reduced;
 }
 
+function TopicCaret() {
+  return (
+    <span
+      className="ml-px inline-block h-[0.85em] w-px translate-y-px bg-fuchsia-300/70 animate-pulse"
+      aria-hidden
+    />
+  );
+}
+
 export function HomeMotionTeaser() {
   const navigate = useNavigate();
   const reducedMotion = usePrefersReducedMotion();
@@ -51,8 +65,7 @@ export function HomeMotionTeaser() {
 
   const currentTopic = TEASER_TOPICS[topicIndex];
   const fullTitle = currentTopic.title;
-
-  const isFullyTyped = phase === 'typing' && displayed === fullTitle;
+  const shortcutActive = isTopicShortcutActive(displayed, phase);
 
   const lessonByPackId = useMemo(
     () => new Map(STARTER_LESSONS.map((lesson) => [lesson.id, lesson])),
@@ -97,49 +110,68 @@ export function HomeMotionTeaser() {
     });
   };
 
+  const renderTopicSlot = (text: string, showCaret: boolean, clickable: boolean) => {
+    const content = (
+      <>
+        {text}
+        {showCaret && <TopicCaret />}
+      </>
+    );
+
+    if (clickable) {
+      return (
+        <button
+          type="button"
+          onClick={startTopic}
+          className="inline-flex items-baseline cursor-pointer hover:underline decoration-white/20 underline-offset-2"
+          aria-label={`Start ${fullTitle} quiz`}
+        >
+          {content}
+        </button>
+      );
+    }
+
+    return <span className="inline-flex items-baseline">{content}</span>;
+  };
+
   if (reducedMotion) {
+    const staticTopic = TEASER_TOPICS[0];
     return (
-      <p className="text-center pt-2" data-testid="home-motion-teaser">
+      <p
+        className="flex flex-wrap items-baseline justify-center gap-x-1 text-center"
+        data-testid="home-motion-teaser"
+      >
         <span className={PREFIX_CLASS}>Motion Quiz</span>
-        <span className={SEPARATOR_CLASS}> · </span>
-        <span className={TOPIC_CLASS}>{TEASER_TOPICS[0].title}</span>
+        <span className={SEPARATOR_CLASS}>·</span>
+        <span className={TOPIC_SLOT_CLASS}>
+          <button
+            type="button"
+            onClick={() => {
+              const lesson = lessonByPackId.get(staticTopic.packId);
+              if (!lesson) return;
+              navigate(`/play/${staticTopic.packId}/calibrate`, {
+                state: playStateForLesson(lesson),
+              });
+            }}
+            className="inline-flex items-baseline cursor-pointer hover:underline decoration-white/20 underline-offset-2"
+            aria-label={`Start ${staticTopic.title} quiz`}
+          >
+            {staticTopic.title}
+          </button>
+        </span>
       </p>
     );
   }
 
-  const topicContent = (
-    <>
-      {displayed}
-      <span
-        className="ml-px inline-block h-[0.85em] w-px translate-y-px bg-fuchsia-300/70 animate-pulse"
-        aria-hidden
-      />
-    </>
-  );
-
   return (
     <p
-      className="text-center pt-2"
+      className="flex flex-wrap items-baseline justify-center gap-x-1 text-center"
       data-testid="home-motion-teaser"
-      aria-live="polite"
     >
       <span className={PREFIX_CLASS}>Motion Quiz</span>
-      <span className={SEPARATOR_CLASS}> · </span>
-      <span className={`inline-block min-w-[8.5rem] text-left ${TOPIC_CLASS}`}>
-        <span className="inline whitespace-nowrap">
-          {isFullyTyped ? (
-            <button
-              type="button"
-              onClick={startTopic}
-              className="cursor-pointer text-left hover:underline decoration-white/20 underline-offset-2"
-              aria-label={`Start ${fullTitle} quiz`}
-            >
-              {topicContent}
-            </button>
-          ) : (
-            topicContent
-          )}
-        </span>
+      <span className={SEPARATOR_CLASS}>·</span>
+      <span className={TOPIC_SLOT_CLASS}>
+        {renderTopicSlot(displayed, displayed.length > 0 || phase === 'emptyHold', shortcutActive)}
       </span>
     </p>
   );

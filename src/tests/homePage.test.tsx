@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HomePage, SHOW_HOME_CONTINUE, SHOW_HOME_MOTION_TEASER, SHOW_HOME_QUICK_PLAY } from '@/routes/HomePage';
 import { SoloPlayPage } from '@/routes/SoloPlayPage';
-import { EMPTY_HOLD_MS, TEASER_TOPICS } from '@/components/home/HomeMotionTeaser';
+import { EMPTY_HOLD_MS, isTopicShortcutActive, TEASER_TOPICS } from '@/components/home/HomeMotionTeaser';
 import { STARTER_LESSONS } from '@/data/starterLessons';
 import { FEATURED_PLAY_PACK_IDS } from '@/storage/seedLessons';
 import type { LessonPack } from '@/storage/types';
@@ -123,14 +123,38 @@ describe('HomePage hackathon polish', () => {
     expect(teaser).not.toHaveTextContent('feels');
 
     const settings = screen.getByRole('button', { name: /Settings/i });
+    const preview = screen.getByTestId('home-mini-preview');
     const privacy = screen.getByText(/Camera processing stays on your device/i);
 
     expect(
       settings.compareDocumentPosition(teaser) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      teaser.compareDocumentPosition(privacy) & Node.DOCUMENT_POSITION_FOLLOWING,
+      teaser.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    expect(
+      preview.compareDocumentPosition(privacy) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('renders the mini preview card below the teaser', async () => {
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>,
+    );
+
+    const preview = await screen.findByTestId('home-mini-preview');
+    expect(preview).toHaveTextContent('Choose a topic');
+    expect(preview).toHaveTextContent('Answer with motion');
+    expect(preview).toHaveTextContent('Optional score proof');
+  });
+
+  it('enables topic shortcut once characters are visible', () => {
+    expect(isTopicShortcutActive('S', 'typing')).toBe(true);
+    expect(isTopicShortcutActive('Sol', 'deleting')).toBe(true);
+    expect(isTopicShortcutActive('', 'emptyHold')).toBe(false);
+    expect(isTopicShortcutActive('', 'typing')).toBe(false);
   });
 
   it('uses a short hold after deleting the typewriter word', () => {
