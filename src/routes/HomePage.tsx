@@ -12,6 +12,12 @@ import type { LessonPack } from '@/storage/types';
 import { WalletHeaderButton } from '@/components/wallet/WalletHeaderButton';
 import { TopicPackIcon } from '@/components/play/TopicPackIcon';
 
+/** Hackathon polish: set true to restore Home quick-play topic cards. */
+export const SHOW_HOME_QUICK_PLAY = false;
+
+/** Hackathon polish: set true to restore the Continue last-topic button. */
+export const SHOW_HOME_CONTINUE = false;
+
 export function HomePage() {
   const navigate = useNavigate();
   const [lastLesson, setLastLesson] = useState<LessonPack | null>(null);
@@ -56,7 +62,7 @@ export function HomePage() {
         </div>
       </header>
 
-      {lastLesson && (
+      {SHOW_HOME_CONTINUE && lastLesson && (
         <button
           onClick={() => startPack(lastLesson)}
           className="btn btn-primary btn-xl w-full"
@@ -65,7 +71,7 @@ export function HomePage() {
         </button>
       )}
 
-      {featuredLessons.length > 0 && (
+      {SHOW_HOME_QUICK_PLAY && featuredLessons.length > 0 && (
         <section className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-white/40">Quick play</p>
           <div className="grid gap-2">
