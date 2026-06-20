@@ -36,7 +36,7 @@ export const solanaBasicsLesson: LessonPack = {
     ),
     trueFalse(
       'solana_basics_q05',
-      'Devnet SOL is real money',
+      'Devnet SOL has real-world value',
       false,
       ['solana', 'basics', 'devnet'],
     ),
@@ -60,7 +60,7 @@ export const solanaBasicsLesson: LessonPack = {
     ),
     trueFalse(
       'solana_basics_q09',
-      'You need a Seeker phone to start building',
+      'You need a Seeker phone to build for Seeker',
       false,
       ['solana', 'basics', 'seeker', 'developer'],
     ),

@@ -168,8 +168,8 @@ describe('ensureStarterLessons', () => {
       ...islanddaoChallengeLesson,
       questions: islanddaoChallengeLesson.questions.map((q) => ({
         ...q,
-        left: { ...q.left, image: undefined },
-        right: { ...q.right, image: undefined },
+        left: { ...q.left, image: { type: 'url' as const, value: '/legacy-left.png' } },
+        right: { ...q.right, image: { type: 'url' as const, value: '/legacy-right.png' } },
       })),
     };
     getLesson.mockImplementation(async (id: string) => {
