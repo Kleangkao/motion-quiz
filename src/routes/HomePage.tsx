@@ -12,7 +12,6 @@ import type { LessonPack } from '@/storage/types';
 import { WalletHeaderButton } from '@/components/wallet/WalletHeaderButton';
 import { TopicPackIcon } from '@/components/play/TopicPackIcon';
 import { HomeMotionTeaser } from '@/components/home/HomeMotionTeaser';
-import { HomeMiniPreview } from '@/components/home/HomeMiniPreview';
 
 /** Hackathon polish: set true to restore Home quick-play topic cards. */
 export const SHOW_HOME_QUICK_PLAY = false;
@@ -118,8 +117,6 @@ export function HomePage() {
             </button>
           ))}
         </nav>
-
-        <HomeMiniPreview />
         </div>
 
         <p className="mx-auto mt-2 w-full max-w-xl text-center text-xs leading-relaxed text-white/30 shrink-0">

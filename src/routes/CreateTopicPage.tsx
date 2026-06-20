@@ -3,6 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { createLesson, getLesson, updateLesson } from '@/storage/lessonStorage';
 import type { LessonImageRef, QuizQuestion } from '@/storage/types';
 import { buildQuestionsFromTopicRows, type TopicQuestionRow } from '@/data/createTopicFromRows';
+import {
+  CREATE_TOPIC_DESCRIPTION_PLACEHOLDER,
+  CREATE_TOPIC_TITLE_PLACEHOLDER,
+  createTopicQuestionPlaceholder,
+} from '@/data/createTopicPlaceholders';
 import { PageLayout } from '@/components/layout/PageLayout';
 import { ImagePicker } from '@/components/teacher/ImagePicker';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
@@ -47,6 +52,7 @@ export function CreateTopicPage() {
   const isEditing = Boolean(lessonId);
 
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [topicIcon, setTopicIcon] = useState<LessonImageRef | undefined>();
   const [questions, setQuestions] = useState<QuestionDraft[]>([emptyQuestion(), emptyQuestion()]);
   const [loading, setLoading] = useState(isEditing);
@@ -69,6 +75,7 @@ export function CreateTopicPage() {
           return;
         }
         setTitle(lesson.title);
+        setDescription(lesson.description ?? '');
         setTopicIcon(lesson.icon);
         setQuestions(
           lesson.questions.length >= MIN_QUESTIONS
@@ -138,6 +145,7 @@ export function CreateTopicPage() {
     try {
       const builtQuestions = buildQuestionsFromTopicRows(rows);
       const durationSeconds = Math.max(120, builtQuestions.length * 15);
+      const trimmedDescription = description.trim();
 
       if (isEditing && lessonId) {
         await updateLesson(lessonId, {
@@ -145,6 +153,7 @@ export function CreateTopicPage() {
           durationSeconds,
           questions: builtQuestions,
           icon: topicIcon,
+          ...(trimmedDescription ? { description: trimmedDescription } : { description: undefined }),
         });
       } else {
         await createLesson({
@@ -156,6 +165,7 @@ export function CreateTopicPage() {
           packKind: 'solo',
           questions: builtQuestions,
           ...(topicIcon ? { icon: topicIcon } : {}),
+          ...(trimmedDescription ? { description: trimmedDescription } : {}),
         });
       }
       navigate('/play');
@@ -198,7 +208,19 @@ export function CreateTopicPage() {
             onChange={(e) => setTitle(e.target.value)}
             required
             className="w-full rounded-xl bg-white/10 px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            placeholder="e.g. Solana Workshop Warm-up"
+            placeholder={CREATE_TOPIC_TITLE_PLACEHOLDER}
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-semibold text-white/80">
+            Topic subtitle (optional)
+          </label>
+          <input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full rounded-xl bg-white/10 px-4 py-2 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder={CREATE_TOPIC_DESCRIPTION_PLACEHOLDER}
           />
         </div>
 
@@ -222,7 +244,9 @@ export function CreateTopicPage() {
             </button>
           </div>
 
-          {questions.map((q, index) => (
+          {questions.map((q, index) => {
+            const placeholders = createTopicQuestionPlaceholder(index);
+            return (
             <div key={q.id} className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-sm font-semibold text-white/80">Question {index + 1}</span>
@@ -244,7 +268,7 @@ export function CreateTopicPage() {
                   onChange={(e) => updateQuestion(q.id, { prompt: e.target.value })}
                   required
                   className="w-full rounded-xl bg-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="What is the native token of Solana?"
+                  placeholder={placeholders.prompt}
                 />
               </div>
 
@@ -256,7 +280,7 @@ export function CreateTopicPage() {
                     onChange={(e) => updateQuestion(q.id, { correctAnswer: e.target.value })}
                     required
                     className="w-full rounded-xl bg-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="SOL"
+                    placeholder={placeholders.correctAnswer}
                   />
                 </div>
                 <div>
@@ -266,7 +290,7 @@ export function CreateTopicPage() {
                     onChange={(e) => updateQuestion(q.id, { wrongAnswer: e.target.value })}
                     required
                     className="w-full rounded-xl bg-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="ETH"
+                    placeholder={placeholders.wrongAnswer}
                   />
                 </div>
               </div>
@@ -284,7 +308,8 @@ export function CreateTopicPage() {
                 />
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {error && <p className="text-sm text-red-400">{error}</p>}

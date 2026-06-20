@@ -143,7 +143,21 @@ describe('HomePage hackathon polish', () => {
     ).toBeTruthy();
   });
 
-  it('keeps mini preview below the primary action buttons', async () => {
+  it('does not render the Home mini preview block', async () => {
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>,
+    );
+
+    await screen.findByRole('button', { name: /Start Quiz/i });
+
+    expect(screen.queryByTestId('home-mini-preview')).not.toBeInTheDocument();
+    expect(screen.queryByText('How it works')).not.toBeInTheDocument();
+    expect(screen.queryByText('Choose a topic')).not.toBeInTheDocument();
+  });
+
+  it('keeps Start Quiz, Scores, Settings, and privacy visible without the mini preview', async () => {
     render(
       <MemoryRouter>
         <HomePage />
@@ -151,32 +165,17 @@ describe('HomePage hackathon polish', () => {
     );
 
     const startQuiz = await screen.findByRole('button', { name: /Start Quiz/i });
+    const scores = screen.getByRole('button', { name: /Scores/i });
     const settings = screen.getByRole('button', { name: /Settings/i });
-    const preview = screen.getByTestId('home-mini-preview');
     const privacy = screen.getByText(/Camera processing stays on your device/i);
 
+    expect(startQuiz).toBeInTheDocument();
+    expect(scores).toBeInTheDocument();
+    expect(settings).toBeInTheDocument();
+    expect(privacy).toBeInTheDocument();
     expect(
-      settings.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING,
+      settings.compareDocumentPosition(privacy) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(
-      startQuiz.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      preview.compareDocumentPosition(privacy) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-  });
-
-  it('renders the mini preview card below the teaser', async () => {
-    render(
-      <MemoryRouter>
-        <HomePage />
-      </MemoryRouter>,
-    );
-
-    const preview = await screen.findByTestId('home-mini-preview');
-    expect(preview).toHaveTextContent('Choose a topic');
-    expect(preview).toHaveTextContent('Answer with motion');
-    expect(preview).toHaveTextContent('Optional score proof');
   });
 
   it('enables topic shortcut once characters are visible', () => {

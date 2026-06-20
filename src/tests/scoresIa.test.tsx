@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { ScoresPage } from '@/routes/ScoresPage';
+import { ScoresPage, SCORES_TOPIC_FILTER_CHIP_CLASS, SCORES_TOPIC_FILTER_ROW_CLASS } from '@/routes/ScoresPage';
 import { HomePage } from '@/routes/HomePage';
 import { SolanaScorePanel } from '@/components/result/SolanaScorePanel';
 import { SoloPlayPage } from '@/routes/SoloPlayPage';
@@ -207,6 +207,20 @@ describe('ScoresPage leaderboard loading', () => {
         }),
       );
     });
+  });
+
+  it('renders topic filters in a single horizontal scroll row', async () => {
+    renderScoresAt('/scores');
+
+    const islandDao = await screen.findByRole('button', { name: 'IslandDAO Challenge' });
+    const filterRow = islandDao.closest("[class*='overflow-x-auto']");
+
+    expect(filterRow).not.toBeNull();
+    expect(filterRow?.className).toContain(SCORES_TOPIC_FILTER_ROW_CLASS.split(' ')[0]);
+    expect(SCORES_TOPIC_FILTER_ROW_CLASS).toContain('flex-nowrap');
+    expect(SCORES_TOPIC_FILTER_ROW_CLASS).toContain('overflow-x-auto');
+    expect(SCORES_TOPIC_FILTER_CHIP_CLASS).toContain('shrink-0');
+    expect(filterRow?.className).not.toContain('flex-wrap');
   });
 
   it('falls back to IslandDAO Challenge when pack query is invalid', async () => {

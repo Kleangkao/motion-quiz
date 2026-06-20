@@ -29,6 +29,11 @@ import {
 import { parseScoresTab, type ScoresTab } from '@/leaderboard/scoresRoutes';
 import type { LeaderboardTopicOption, RecordedScoreRow, TopicLeaderboardRow } from '@/leaderboard/types';
 
+/** Single-row horizontal topic filter on Scores leaderboard tab. */
+export const SCORES_TOPIC_FILTER_ROW_CLASS =
+  'flex flex-nowrap gap-2 overflow-x-auto pb-1 -mx-1 px-1';
+export const SCORES_TOPIC_FILTER_CHIP_CLASS = 'btn btn-sm shrink-0';
+
 function LeaderboardRowCard({ row }: { row: TopicLeaderboardRow }) {
   const cluster = row.cluster;
 
@@ -329,7 +334,7 @@ export function ScoresPage() {
           <>
             <section className="space-y-3">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-white/40">Topic</h2>
-              <div className="flex flex-wrap gap-2">
+              <div className={SCORES_TOPIC_FILTER_ROW_CLASS}>
                 {topicOptions.map((option) => {
                   const active = option.packId === selectedPackId;
                   return (
@@ -337,7 +342,7 @@ export function ScoresPage() {
                       key={option.packId}
                       type="button"
                       onClick={() => selectPack(option.packId)}
-                      className={`btn btn-sm ${active ? 'btn-primary' : 'btn-secondary'}`}
+                      className={`${SCORES_TOPIC_FILTER_CHIP_CLASS} ${active ? 'btn-primary' : 'btn-secondary'}`}
                     >
                       {option.title}
                     </button>
