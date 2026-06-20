@@ -36,10 +36,8 @@ import {
 import { calibrationForFacing } from '@/camera/cameraSetup';
 import { usePlayFlowLandscape } from '@/camera/usePlayFlowLandscape';
 import {
-  PLAY_FLOW_CHOICES_ROW,
-  PLAY_FLOW_GAME_CARD_LEFT,
-  PLAY_FLOW_GAME_CARD_RIGHT,
-  PLAY_FLOW_GAME_STAGE,
+  PLAY_FLOW_CARD_LEFT,
+  PLAY_FLOW_CARD_RIGHT,
   PLAY_FLOW_GESTURE_STATUS,
   PLAY_FLOW_PROMPT_BAND,
   PLAY_FLOW_VIEWPORT,
@@ -456,55 +454,53 @@ export function GamePage() {
       )}
 
       {activeQ && gameState.status !== 'finished' && !isPhotoCapture && (
-        <div className={PLAY_FLOW_GAME_STAGE}>
-          <div className={PLAY_FLOW_PROMPT_BAND}>
-            <div className="w-full rounded-2xl bg-black/60 px-4 py-2 backdrop-blur sm:px-6 sm:py-3">
-              <p className="text-lg font-black text-white text-center drop-shadow-lg sm:text-2xl line-clamp-3">
-                {activeQ.prompt}
-              </p>
-            </div>
+        <div className={PLAY_FLOW_PROMPT_BAND}>
+          <div className="rounded-2xl bg-black/60 px-4 py-2 sm:px-6 sm:py-3 backdrop-blur max-w-3xl">
+            <p className="text-lg font-black text-white text-center drop-shadow-lg sm:text-2xl line-clamp-3">
+              {activeQ.prompt}
+            </p>
           </div>
+        </div>
+      )}
 
-          {gameState.status !== 'paused' && (
-            <div className={PLAY_FLOW_CHOICES_ROW}>
-              <div className={PLAY_FLOW_GAME_CARD_LEFT}>
-                <ChoiceCard
-                  ref={leftChoiceRef}
-                  choice={activeQ.left}
-                  side="left"
-                  touchEnabled={touchAllowed && isPlaying}
-                  holdProgress={gestureOutput.candidateSide === 'left' ? gestureOutput.holdProgress : 0}
-                  isCandidate={gestureOutput.candidateSide === 'left'}
-                  feedbackState={
-                    gameState.status === 'feedback' && gameState.feedback
-                      ? gameState.feedback.selectedSide === 'left'
-                        ? gameState.feedback.isCorrect ? 'correct' : 'wrong'
-                        : activeQ.correctSide === 'left' ? 'correct' : 'neutral'
-                      : 'neutral'
-                  }
-                  onTouch={() => touchAllowed && submitAnswer('left', 'touch')}
-                />
-              </div>
-              <div className={PLAY_FLOW_GAME_CARD_RIGHT}>
-                <ChoiceCard
-                  ref={rightChoiceRef}
-                  choice={activeQ.right}
-                  side="right"
-                  touchEnabled={touchAllowed && isPlaying}
-                  holdProgress={gestureOutput.candidateSide === 'right' ? gestureOutput.holdProgress : 0}
-                  isCandidate={gestureOutput.candidateSide === 'right'}
-                  feedbackState={
-                    gameState.status === 'feedback' && gameState.feedback
-                      ? gameState.feedback.selectedSide === 'right'
-                        ? gameState.feedback.isCorrect ? 'correct' : 'wrong'
-                        : activeQ.correctSide === 'right' ? 'correct' : 'neutral'
-                      : 'neutral'
-                  }
-                  onTouch={() => touchAllowed && submitAnswer('right', 'touch')}
-                />
-              </div>
-            </div>
-          )}
+      {activeQ && gameState.status !== 'finished' && gameState.status !== 'paused' && !isPhotoCapture && (
+        <div className="absolute inset-0 z-10 pointer-events-none">
+          <div className={PLAY_FLOW_CARD_LEFT}>
+            <ChoiceCard
+              ref={leftChoiceRef}
+              choice={activeQ.left}
+              side="left"
+              touchEnabled={touchAllowed && isPlaying}
+              holdProgress={gestureOutput.candidateSide === 'left' ? gestureOutput.holdProgress : 0}
+              isCandidate={gestureOutput.candidateSide === 'left'}
+              feedbackState={
+                gameState.status === 'feedback' && gameState.feedback
+                  ? gameState.feedback.selectedSide === 'left'
+                    ? gameState.feedback.isCorrect ? 'correct' : 'wrong'
+                    : activeQ.correctSide === 'left' ? 'correct' : 'neutral'
+                  : 'neutral'
+              }
+              onTouch={() => touchAllowed && submitAnswer('left', 'touch')}
+            />
+          </div>
+          <div className={PLAY_FLOW_CARD_RIGHT}>
+            <ChoiceCard
+              ref={rightChoiceRef}
+              choice={activeQ.right}
+              side="right"
+              touchEnabled={touchAllowed && isPlaying}
+              holdProgress={gestureOutput.candidateSide === 'right' ? gestureOutput.holdProgress : 0}
+              isCandidate={gestureOutput.candidateSide === 'right'}
+              feedbackState={
+                gameState.status === 'feedback' && gameState.feedback
+                  ? gameState.feedback.selectedSide === 'right'
+                    ? gameState.feedback.isCorrect ? 'correct' : 'wrong'
+                    : activeQ.correctSide === 'right' ? 'correct' : 'neutral'
+                  : 'neutral'
+              }
+              onTouch={() => touchAllowed && submitAnswer('right', 'touch')}
+            />
+          </div>
         </div>
       )}
 

@@ -14,23 +14,8 @@ export const PLAY_FLOW_BAR_BTN = 'play-flow-bar-btn btn btn-secondary btn-sm';
 export const PLAY_FLOW_FULLSCREEN_BTN =
   'play-flow-fullscreen-btn btn btn-secondary z-30 shadow-lg bg-black/55 backdrop-blur-sm border-white/25';
 
-/** Gameplay band between top chrome and bottom gesture status — centers quiz content. */
-export const PLAY_FLOW_GAME_STAGE =
-  'play-flow-game-stage absolute inset-x-0 z-10 flex flex-col items-center justify-center gap-4 pointer-events-none safe-left safe-right top-[calc(env(safe-area-inset-top,0px)+3.25rem)] bottom-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] sm:gap-6 sm:top-[calc(env(safe-area-inset-top,0px)+3.75rem)] sm:bottom-[calc(env(safe-area-inset-bottom,0px)+5rem)]';
-
 export const PLAY_FLOW_PROMPT_BAND =
-  'play-flow-prompt-band flex w-full max-w-3xl flex-col items-center pointer-events-none px-4 sm:px-6';
-
-/** Balanced TRUE/FALSE row beneath the centered question. */
-export const PLAY_FLOW_CHOICES_ROW =
-  'play-flow-choices-row grid w-full max-w-4xl grid-cols-2 items-center gap-3 px-2 sm:max-w-5xl sm:gap-8 sm:px-4';
-
-const PLAY_FLOW_GAME_CARD =
-  'play-flow-game-card relative flex max-w-[44vw] sm:max-w-[12.5rem]';
-
-export const PLAY_FLOW_GAME_CARD_LEFT = `${PLAY_FLOW_GAME_CARD} play-flow-card-left justify-self-end justify-end pr-1 sm:pr-2 pointer-events-auto`;
-
-export const PLAY_FLOW_GAME_CARD_RIGHT = `${PLAY_FLOW_GAME_CARD} play-flow-card-right justify-self-start justify-start pl-1 sm:pl-2 pointer-events-auto`;
+  'play-flow-prompt-band absolute top-[11%] left-0 right-0 z-10 flex flex-col items-center pointer-events-none px-4';
 
 /** Compact centered instruction for gesture test (avoids top-bar overlap). */
 export const PLAY_FLOW_GESTURE_TEST_PROMPT =
