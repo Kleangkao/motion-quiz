@@ -11,6 +11,8 @@ export interface TeaserTopicTheme {
   /** CSS linear-gradient for topic text — inspired by pack logo colors. */
   gradient: string;
   caretColor: string;
+  /** When set, renders solid text instead of gradient. */
+  textColor?: string;
 }
 
 /** Featured topic labels, routes, and logo-inspired accents — matches Play order. */
@@ -25,7 +27,8 @@ export const TEASER_TOPICS: readonly TeaserTopicTheme[] = [
     title: 'IslandDAO',
     packId: 'islanddao-challenge',
     gradient: 'linear-gradient(90deg, #8fd4a8, #c8f0d4)',
-    caretColor: '#b8e6c8',
+    textColor: '#bbeac3',
+    caretColor: '#bbeac3',
   },
   {
     title: 'Ride Markets',
@@ -37,7 +40,8 @@ export const TEASER_TOPICS: readonly TeaserTopicTheme[] = [
     title: 'DoubleZero',
     packId: 'doublezero',
     gradient: 'linear-gradient(90deg, #22c55e, #3b82f6, #ef4444)',
-    caretColor: '#60a5fa',
+    textColor: '#ffffff',
+    caretColor: '#ffffff',
   },
   {
     title: 'Play Solana',
@@ -49,13 +53,15 @@ export const TEASER_TOPICS: readonly TeaserTopicTheme[] = [
     title: 'Star Atlas',
     packId: 'star-atlas',
     gradient: 'linear-gradient(90deg, #e2e8f0, #22d3ee)',
-    caretColor: '#67e8f9',
+    textColor: '#ffffff',
+    caretColor: '#ffffff',
   },
   {
     title: 'MonkeDAO',
     packId: 'monkedao',
     gradient: 'linear-gradient(90deg, #d4a574, #f5f5dc)',
-    caretColor: '#f5f5dc',
+    textColor: '#f3efcd',
+    caretColor: '#f3efcd',
   },
 ] as const;
 
@@ -81,6 +87,9 @@ export function isTopicShortcutActive(displayed: string, phase: TeaserPhase): bo
 }
 
 export function topicTextStyle(theme: TeaserTopicTheme): CSSProperties {
+  if (theme.textColor) {
+    return { color: theme.textColor };
+  }
   return {
     backgroundImage: theme.gradient,
     WebkitBackgroundClip: 'text',

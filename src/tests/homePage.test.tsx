@@ -195,12 +195,39 @@ describe('HomePage hackathon polish', () => {
     expect(TEASER_TOPICS.map((topic) => topic.title)).not.toContain('on-chain');
   });
 
-  it('assigns logo-inspired gradients to each teaser topic', () => {
-    for (const topic of TEASER_TOPICS) {
+  it('assigns logo-inspired gradients to gradient teaser topics', () => {
+    const gradientTopics = TEASER_TOPICS.filter((topic) => !topic.textColor);
+    expect(gradientTopics.map((topic) => topic.title)).toEqual([
+      'Solana',
+      'Ride Markets',
+      'Play Solana',
+    ]);
+
+    for (const topic of gradientTopics) {
       expect(topic.gradient).toMatch(/^linear-gradient\(/);
       expect(topic.caretColor).toMatch(/^#/);
       expect(topicTextStyle(topic).backgroundImage).toBe(topic.gradient);
     }
+  });
+
+  it('assigns solid teaser colors for IslandDAO, DoubleZero, Star Atlas, and MonkeDAO', () => {
+    const byTitle = Object.fromEntries(TEASER_TOPICS.map((topic) => [topic.title, topic]));
+
+    expect(byTitle.IslandDAO.textColor).toBe('#bbeac3');
+    expect(byTitle.IslandDAO.caretColor).toBe('#bbeac3');
+    expect(topicTextStyle(byTitle.IslandDAO)).toEqual({ color: '#bbeac3' });
+
+    expect(byTitle.DoubleZero.textColor).toBe('#ffffff');
+    expect(byTitle.DoubleZero.caretColor).toBe('#ffffff');
+    expect(topicTextStyle(byTitle.DoubleZero)).toEqual({ color: '#ffffff' });
+
+    expect(byTitle['Star Atlas'].textColor).toBe('#ffffff');
+    expect(byTitle['Star Atlas'].caretColor).toBe('#ffffff');
+    expect(topicTextStyle(byTitle['Star Atlas'])).toEqual({ color: '#ffffff' });
+
+    expect(byTitle.MonkeDAO.textColor).toBe('#f3efcd');
+    expect(byTitle.MonkeDAO.caretColor).toBe('#f3efcd');
+    expect(topicTextStyle(byTitle.MonkeDAO)).toEqual({ color: '#f3efcd' });
   });
 
   it('renders the teaser with the shorter Quiz label', async () => {
