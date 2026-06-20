@@ -7,7 +7,7 @@ export const doublezeroLesson: LessonPack = {
   ...basePack(
     DOUBLEZERO_ID,
     'DoubleZero',
-    'TRUE/FALSE quiz about DoubleZero network infrastructure.',
+    'Network infrastructure, latency, and faster communication.',
     'solo',
     6,
   ),

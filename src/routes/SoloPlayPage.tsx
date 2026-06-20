@@ -162,7 +162,15 @@ export function SoloPlayPage() {
           </section>
         )}
 
-        <div className="border-t border-white/10" role="separator" />
+        <div className="relative py-2" role="separator" aria-label="or">
+          <div className="border-t border-white/10" />
+          <span
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 px-3 text-xs lowercase text-white/35"
+            data-testid="play-create-divider-or"
+          >
+            or
+          </span>
+        </div>
 
         <section
           aria-labelledby="create-your-own-heading"

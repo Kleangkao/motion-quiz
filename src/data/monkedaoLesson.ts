@@ -7,7 +7,7 @@ export const monkedaoLesson: LessonPack = {
   ...basePack(
     MONKEDAO_ID,
     'MonkeDAO',
-    'TRUE/FALSE quiz about MonkeDAO and Solana Monkey Business NFTs.',
+    'MonkeDAO, Solana Monkey Business, and NFT culture.',
     'solo',
     7,
   ),

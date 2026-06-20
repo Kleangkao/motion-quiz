@@ -364,6 +364,52 @@ describe('SoloPlayPage featured topics', () => {
     expect(screen.getByRole('button', { name: 'Import Pack' })).toBeInTheDocument();
   });
 
+  it('renders a centered or label on the divider above Create your own', async () => {
+    render(
+      <MemoryRouter>
+        <SoloPlayPage />
+      </MemoryRouter>,
+    );
+
+    const orLabel = await screen.findByTestId('play-create-divider-or');
+    expect(orLabel).toHaveTextContent('or');
+    expect(orLabel.className).toContain('text-white/35');
+
+    const createHeading = screen.getByRole('heading', { name: 'Create your own', level: 2 });
+    expect(
+      orLabel.compareDocumentPosition(createHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('shows updated built-in topic descriptions on Play cards', async () => {
+    render(
+      <MemoryRouter>
+        <SoloPlayPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Solana', level: 2 })).toBeInTheDocument();
+    });
+
+    const descriptions: Record<string, string> = {
+      Solana: 'Wallet safety, Devnet, Mainnet, and Seeker basics.',
+      'IslandDAO Challenge': 'IslandDAO, builders, events, and community quests.',
+      'Ride Markets': 'Trade calls, YES/NO choices, and conviction markets.',
+      DoubleZero: 'Network infrastructure, latency, and faster communication.',
+      'Play Solana': 'Solana gaming, handheld play, and wallet support.',
+      'Star Atlas': 'Space MMO, ATLAS, POLIS, and future lore.',
+      MonkeDAO: 'MonkeDAO, Solana Monkey Business, and NFT culture.',
+    };
+
+    for (const [title, description] of Object.entries(descriptions)) {
+      expect(screen.getByText(description)).toBeInTheDocument();
+      expect(
+        STARTER_LESSONS.find((lesson) => lesson.title === title)?.description,
+      ).toBe(description);
+    }
+  });
+
   it('lifts Play topic cards upward on hover and focus', async () => {
     const { container } = render(
       <MemoryRouter>

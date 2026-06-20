@@ -7,7 +7,7 @@ export const playSolanaLesson: LessonPack = {
   ...basePack(
     PLAY_SOLANA_ID,
     'Play Solana',
-    'TRUE/FALSE quiz about Play Solana and the PSG1 handheld.',
+    'Solana gaming, handheld play, and wallet support.',
     'solo',
     7,
   ),

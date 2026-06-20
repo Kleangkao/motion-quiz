@@ -7,7 +7,7 @@ export const rideMarketLesson: LessonPack = {
   ...basePack(
     RIDE_MARKET_ID,
     'Ride Markets',
-    'TRUE/FALSE quiz about Ride Markets conviction trading.',
+    'Trade calls, YES/NO choices, and conviction markets.',
     'solo',
     7,
   ),

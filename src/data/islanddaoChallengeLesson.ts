@@ -7,7 +7,7 @@ export const islanddaoChallengeLesson: LessonPack = {
   ...basePack(
     ISLANDDAO_CHALLENGE_ID,
     'IslandDAO Challenge',
-    'TRUE/FALSE quiz about IslandDAO and the Solana builder community.',
+    'IslandDAO, builders, events, and community quests.',
     'challenge',
     7,
     ISLANDDAO_CHALLENGE_ID,

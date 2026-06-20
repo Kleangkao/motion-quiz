@@ -7,7 +7,7 @@ export const starAtlasLesson: LessonPack = {
   ...basePack(
     STAR_ATLAS_ID,
     'Star Atlas',
-    'Quiz about the Star Atlas space MMO on Solana.',
+    'Space MMO, ATLAS, POLIS, and future lore.',
     'solo',
     6,
   ),
