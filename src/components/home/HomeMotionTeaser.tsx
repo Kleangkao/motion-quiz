@@ -70,12 +70,14 @@ export function HomeMotionTeaser() {
       aria-live="polite"
     >
       Motion Quiz feels{' '}
-      <span className="inline-flex items-baseline text-white/55">
-        <span className="inline-block min-w-[5.5rem] text-left">{displayed}</span>
-        <span
-          className="ml-0.5 inline-block h-[0.9em] w-px translate-y-px bg-white/50 animate-pulse"
-          aria-hidden
-        />
+      <span className="inline-block min-w-[5.5rem] text-left text-white/55">
+        <span className="inline whitespace-nowrap">
+          {displayed}
+          <span
+            className="ml-px inline-block h-[0.85em] w-px translate-y-px bg-white/50 animate-pulse"
+            aria-hidden
+          />
+        </span>
       </span>
     </p>
   );

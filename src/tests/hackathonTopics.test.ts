@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { BUILTIN_LESSON_IDS, STARTER_LESSONS } from '@/data/starterLessons';
 import { RIDE_MARKET_ID, rideMarketLesson } from '@/data/rideMarketLesson';
+import { solanaBasicsLesson } from '@/data/solanaBasicsLesson';
+import { starAtlasLesson } from '@/data/starAtlasLesson';
 import { FEATURED_PLAY_PACK_IDS } from '@/storage/seedLessons';
 
 const PLAY_TOPIC_ORDER = [
@@ -37,15 +39,47 @@ describe('hackathon built-in topics', () => {
     }
   });
 
-  it('uses TRUE/FALSE labels for other hackathon topics', () => {
-    const newPackIds = ['doublezero', 'play-solana', 'star-atlas', 'monkedao'] as const;
-    for (const packId of newPackIds) {
+  it('uses TRUE/FALSE labels for hackathon topics without mixed formats', () => {
+    const tfOnlyPackIds = ['doublezero', 'play-solana', 'monkedao'] as const;
+    for (const packId of tfOnlyPackIds) {
       const lesson = STARTER_LESSONS.find((pack) => pack.id === packId);
       expect(lesson).toBeDefined();
       for (const question of lesson!.questions) {
         expect(question.left.label).toBe('TRUE');
         expect(question.right.label).toBe('FALSE');
       }
+    }
+  });
+
+  it('Star Atlas has six questions including the CEO A/B item', () => {
+    expect(starAtlasLesson.questions).toHaveLength(6);
+
+    const ceoQuestion = starAtlasLesson.questions.find(
+      (question) => question.prompt === 'Who is the CEO of Star Atlas?',
+    );
+    expect(ceoQuestion).toBeDefined();
+    expect(ceoQuestion!.left.label).toBe('Michael Wagner');
+    expect(ceoQuestion!.right.label).toBe('Anonymous guy');
+    expect(ceoQuestion!.correctSide).toBe('left');
+  });
+
+  it('Solana has nine TRUE/FALSE questions with updated copy', () => {
+    expect(solanaBasicsLesson.questions).toHaveLength(9);
+    expect(solanaBasicsLesson.questions.map((question) => question.prompt)).toEqual([
+      'You can share your wallet address',
+      'You can share your seed phrase',
+      'Connecting your wallet moves your money',
+      'You should read before you sign',
+      'Devnet SOL is real money',
+      'Mainnet uses real SOL',
+      'RPC helps apps talk to Solana',
+      'Seeker comes with Seed Vault Wallet',
+      'A Seeker phone is required to start building',
+    ]);
+
+    for (const question of solanaBasicsLesson.questions) {
+      expect(question.left.label).toBe('TRUE');
+      expect(question.right.label).toBe('FALSE');
     }
   });
 });

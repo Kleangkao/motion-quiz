@@ -1,39 +1,5 @@
-import type { LessonPack, QuizQuestion } from '@/storage/types';
-import { basePack } from './quizPackHelpers';
-
-function safeRisky(
-  id: string,
-  prompt: string,
-  answer: 'SAFE' | 'RISKY',
-  tags?: string[],
-): QuizQuestion {
-  return {
-    id,
-    prompt,
-    left: { id: `${id}_safe`, label: 'SAFE' },
-    right: { id: `${id}_risky`, label: 'RISKY' },
-    correctSide: answer === 'SAFE' ? 'left' : 'right',
-    difficulty: 'easy',
-    tags,
-  };
-}
-
-function trueFalse(
-  id: string,
-  prompt: string,
-  answer: boolean,
-  tags?: string[],
-): QuizQuestion {
-  return {
-    id,
-    prompt,
-    left: { id: `${id}_true`, label: 'TRUE' },
-    right: { id: `${id}_false`, label: 'FALSE' },
-    correctSide: answer ? 'left' : 'right',
-    difficulty: 'easy',
-    tags,
-  };
-}
+import type { LessonPack } from '@/storage/types';
+import { basePack, trueFalse } from './quizPackHelpers';
 
 export const solanaBasicsLesson: LessonPack = {
   ...basePack(
@@ -44,41 +10,41 @@ export const solanaBasicsLesson: LessonPack = {
     9,
   ),
   questions: [
-    safeRisky(
+    trueFalse(
       'solana_basics_q01',
-      'Sharing your seed phrase',
-      'RISKY',
-      ['solana', 'basics', 'safety', 'wallet'],
-    ),
-    safeRisky(
-      'solana_basics_q02',
-      'Sharing your wallet address',
-      'SAFE',
+      'You can share your wallet address',
+      true,
       ['solana', 'basics', 'wallet'],
     ),
     trueFalse(
+      'solana_basics_q02',
+      'You can share your seed phrase',
+      false,
+      ['solana', 'basics', 'safety', 'wallet'],
+    ),
+    trueFalse(
       'solana_basics_q03',
+      'Connecting your wallet moves your money',
+      false,
+      ['solana', 'basics', 'wallet', 'safety'],
+    ),
+    trueFalse(
+      'solana_basics_q04',
+      'You should read before you sign',
+      true,
+      ['solana', 'basics', 'safety', 'wallet'],
+    ),
+    trueFalse(
+      'solana_basics_q05',
       'Devnet SOL is real money',
       false,
       ['solana', 'basics', 'devnet'],
     ),
     trueFalse(
-      'solana_basics_q04',
-      'Mainnet is the real network',
+      'solana_basics_q06',
+      'Mainnet uses real SOL',
       true,
       ['solana', 'basics', 'mainnet'],
-    ),
-    trueFalse(
-      'solana_basics_q05',
-      'Connecting wallet instantly sends money',
-      false,
-      ['solana', 'basics', 'wallet', 'safety'],
-    ),
-    safeRisky(
-      'solana_basics_q06',
-      'Reading before signing',
-      'SAFE',
-      ['solana', 'basics', 'safety', 'wallet'],
     ),
     trueFalse(
       'solana_basics_q07',
@@ -88,13 +54,13 @@ export const solanaBasicsLesson: LessonPack = {
     ),
     trueFalse(
       'solana_basics_q08',
-      'Seeker has a built-in Seed Vault Wallet',
+      'Seeker comes with Seed Vault Wallet',
       true,
       ['solana', 'basics', 'seeker', 'wallet'],
     ),
     trueFalse(
       'solana_basics_q09',
-      'You need a Seeker phone to start building for Seeker',
+      'A Seeker phone is required to start building',
       false,
       ['solana', 'basics', 'seeker', 'developer'],
     ),
