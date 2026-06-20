@@ -54,13 +54,13 @@ export const solanaBasicsLesson: LessonPack = {
     ),
     trueFalse(
       'solana_basics_q08',
-      'Seeker comes with Seed Vault Wallet',
+      'Seeker includes Seed Vault Wallet',
       true,
       ['solana', 'basics', 'seeker', 'wallet'],
     ),
     trueFalse(
       'solana_basics_q09',
-      'A Seeker phone is required to start building',
+      'You need a Seeker phone to start building',
       false,
       ['solana', 'basics', 'seeker', 'developer'],
     ),

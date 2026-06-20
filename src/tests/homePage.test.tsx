@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HomePage, SHOW_HOME_CONTINUE, SHOW_HOME_MOTION_TEASER, SHOW_HOME_QUICK_PLAY } from '@/routes/HomePage';
 import { SoloPlayPage } from '@/routes/SoloPlayPage';
+import { EMPTY_HOLD_MS } from '@/components/home/HomeMotionTeaser';
 import { STARTER_LESSONS } from '@/data/starterLessons';
 import { FEATURED_PLAY_PACK_IDS } from '@/storage/seedLessons';
 import type { LessonPack } from '@/storage/types';
@@ -130,6 +131,10 @@ describe('HomePage hackathon polish', () => {
     ).toBeTruthy();
   });
 
+  it('uses a short hold after deleting the typewriter word', () => {
+    expect(EMPTY_HOLD_MS).toBe(500);
+  });
+
   it('keeps Start Quiz, Scores, and Settings visible with teaser enabled', async () => {
     render(
       <MemoryRouter>
@@ -208,5 +213,24 @@ describe('SoloPlayPage featured topics', () => {
 
     expect(await screen.findByRole('button', { name: 'Create Topic' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Import Pack' })).toBeInTheDocument();
+  });
+
+  it('lifts Play topic cards upward on hover and focus', async () => {
+    const { container } = render(
+      <MemoryRouter>
+        <SoloPlayPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Solana', level: 2 })).toBeInTheDocument();
+    });
+
+    const card = container.querySelector('.glass-card');
+    expect(card).toBeTruthy();
+    expect(card!.className).toContain('hover:-translate-y-1');
+    expect(card!.className).toContain('focus-within:-translate-y-1');
+    expect(card!.className).toContain('transform-gpu');
+    expect(card!.className).not.toMatch(/translate-x/);
   });
 });

@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="MonkeDAO">
-  <rect width="128" height="128" rx="16" fill="#0f172a"/>
-  <rect x="8" y="8" width="112" height="112" rx="12" fill="#422006" stroke="#fbbf24" stroke-width="2"/>
-  <text x="64" y="58" text-anchor="middle" fill="#fde68a" font-family="system-ui,sans-serif" font-size="12" font-weight="700">Monke</text>
-  <text x="64" y="78" text-anchor="middle" fill="#fbbf24" font-family="system-ui,sans-serif" font-size="12" font-weight="700">DAO</text>
-</svg>

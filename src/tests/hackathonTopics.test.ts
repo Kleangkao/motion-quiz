@@ -73,8 +73,8 @@ describe('hackathon built-in topics', () => {
       'Devnet SOL is real money',
       'Mainnet uses real SOL',
       'RPC helps apps talk to Solana',
-      'Seeker comes with Seed Vault Wallet',
-      'A Seeker phone is required to start building',
+      'Seeker includes Seed Vault Wallet',
+      'You need a Seeker phone to start building',
     ]);
 
     for (const question of solanaBasicsLesson.questions) {
