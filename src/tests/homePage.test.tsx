@@ -6,6 +6,9 @@ import { SoloPlayPage } from '@/routes/SoloPlayPage';
 import {
   EMPTY_HOLD_MS,
   isTopicShortcutActive,
+  segmentTextStyle,
+  sliceDisplayedSegments,
+  TEASER_LINE_CLASS,
   TEASER_TOPICS,
   topicTextStyle,
 } from '@/components/home/HomeMotionTeaser';
@@ -196,18 +199,57 @@ describe('HomePage hackathon polish', () => {
   });
 
   it('assigns logo-inspired gradients to gradient teaser topics', () => {
-    const gradientTopics = TEASER_TOPICS.filter((topic) => !topic.textColor);
-    expect(gradientTopics.map((topic) => topic.title)).toEqual([
-      'Solana',
-      'Ride Markets',
-      'Play Solana',
-    ]);
+    const gradientTopics = TEASER_TOPICS.filter((topic) => !topic.textColor && !topic.segments);
+    expect(gradientTopics.map((topic) => topic.title)).toEqual(['Solana', 'Ride Markets']);
 
     for (const topic of gradientTopics) {
       expect(topic.gradient).toMatch(/^linear-gradient\(/);
       expect(topic.caretColor).toMatch(/^#/);
       expect(topicTextStyle(topic).backgroundImage).toBe(topic.gradient);
     }
+  });
+
+  it('renders Play Solana with gradient Play and white Solana segments', () => {
+    const playSolana = TEASER_TOPICS.find((topic) => topic.title === 'Play Solana')!;
+
+    expect(playSolana.segments).toEqual([
+      { value: 'Play', gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)' },
+      { value: ' ', textColor: '#ffffff' },
+      { value: 'Solana', textColor: '#ffffff' },
+    ]);
+    expect(playSolana.caretColor).toBe('#ffffff');
+
+    const partialPlay = sliceDisplayedSegments(playSolana, 'Pla');
+    expect(partialPlay).toEqual([
+      {
+        segment: { value: 'Play', gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)' },
+        text: 'Pla',
+      },
+    ]);
+    expect(segmentTextStyle(partialPlay[0].segment).backgroundImage).toBe(playSolana.gradient);
+
+    const withSpace = sliceDisplayedSegments(playSolana, 'Play ');
+    expect(withSpace).toEqual([
+      {
+        segment: { value: 'Play', gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)' },
+        text: 'Play',
+      },
+      { segment: { value: ' ', textColor: '#ffffff' }, text: ' ' },
+    ]);
+
+    const fullTitle = sliceDisplayedSegments(playSolana, 'Play Solana');
+    expect(fullTitle.at(-1)).toEqual({
+      segment: { value: 'Solana', textColor: '#ffffff' },
+      text: 'Solana',
+    });
+    expect(segmentTextStyle(fullTitle.at(-1)!.segment)).toEqual({ color: '#ffffff' });
+  });
+
+  it('keeps the teaser row start-aligned with a narrower stable width', () => {
+    expect(TEASER_LINE_CLASS).toContain('justify-start');
+    expect(TEASER_LINE_CLASS).toContain('max-w-[min(100%,19rem)]');
+    expect(TEASER_LINE_CLASS).toContain('sm:max-w-[min(100%,23rem)]');
+    expect(TEASER_LINE_CLASS).not.toContain('justify-center');
   });
 
   it('assigns solid teaser colors for IslandDAO, DoubleZero, Star Atlas, and MonkeDAO', () => {

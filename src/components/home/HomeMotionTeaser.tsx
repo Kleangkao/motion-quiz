@@ -13,6 +13,15 @@ export interface TeaserTopicTheme {
   caretColor: string;
   /** When set, renders solid text instead of gradient. */
   textColor?: string;
+  /** Optional per-segment styling for progressive typewriter reveal. */
+  segments?: readonly TeaserTextSegment[];
+}
+
+export interface TeaserTextSegment {
+  /** Literal segment text, including any leading space. */
+  value: string;
+  gradient?: string;
+  textColor?: string;
 }
 
 /** Featured topic labels, routes, and logo-inspired accents — matches Play order. */
@@ -47,7 +56,12 @@ export const TEASER_TOPICS: readonly TeaserTopicTheme[] = [
     title: 'Play Solana',
     packId: 'play-solana',
     gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)',
-    caretColor: '#22d3ee',
+    caretColor: '#ffffff',
+    segments: [
+      { value: 'Play', gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)' },
+      { value: ' ', textColor: '#ffffff' },
+      { value: 'Solana', textColor: '#ffffff' },
+    ],
   },
   {
     title: 'Star Atlas',
@@ -70,13 +84,14 @@ const DELETE_MS = 45;
 const PAUSE_MS = 1400;
 export const EMPTY_HOLD_MS = 500;
 
-const PREFIX_CLASS = 'text-sm sm:text-base font-medium leading-none text-white/40';
+const PREFIX_CLASS = 'text-base sm:text-lg font-medium leading-none text-white/40';
 const SEPARATOR_CLASS = 'leading-none text-white/25';
 const LABEL_CLASS = 'inline-flex shrink-0 items-baseline gap-x-1.5 sm:gap-x-2';
 const HERO_CLASS =
   'flex w-full justify-center overflow-hidden px-1 min-h-[3.25rem] sm:min-h-[4.5rem]';
-const LINE_CLASS =
-  'inline-flex w-full max-w-[min(100%,22rem)] sm:max-w-[min(100%,26rem)] items-baseline justify-start gap-x-1.5 sm:gap-x-2';
+export const TEASER_LINE_CLASS =
+  'inline-flex w-full max-w-[min(100%,19rem)] sm:max-w-[min(100%,23rem)] items-baseline justify-start gap-x-1.5 sm:gap-x-2';
+const LINE_CLASS = TEASER_LINE_CLASS;
 const TOPIC_TEXT_CLASS =
   'text-[clamp(1.75rem,8vw,3rem)] font-black tracking-tight leading-none break-words';
 const TOPIC_SLOT_CLASS =
@@ -96,6 +111,68 @@ export function topicTextStyle(theme: TeaserTopicTheme): CSSProperties {
     backgroundClip: 'text',
     color: 'transparent',
   };
+}
+
+export function segmentTextStyle(segment: TeaserTextSegment): CSSProperties {
+  if (segment.textColor) {
+    return { color: segment.textColor };
+  }
+  if (segment.gradient) {
+    return {
+      backgroundImage: segment.gradient,
+      WebkitBackgroundClip: 'text',
+      backgroundClip: 'text',
+      color: 'transparent',
+    };
+  }
+  return {};
+}
+
+export function sliceDisplayedSegments(
+  theme: TeaserTopicTheme,
+  displayed: string,
+): ReadonlyArray<{ segment: TeaserTextSegment; text: string }> {
+  if (!theme.segments) {
+    return displayed ? [{ segment: { value: displayed }, text: displayed }] : [];
+  }
+
+  const parts: { segment: TeaserTextSegment; text: string }[] = [];
+  let consumed = 0;
+
+  for (const segment of theme.segments) {
+    if (consumed >= displayed.length) break;
+
+    const take = Math.min(segment.value.length, displayed.length - consumed);
+    const text = segment.value.slice(0, take);
+    if (text.length === 0) continue;
+
+    parts.push({ segment, text });
+    consumed += take;
+  }
+
+  return parts;
+}
+
+function TopicText({ theme, text }: { theme: TeaserTopicTheme; text: string }) {
+  const parts = sliceDisplayedSegments(theme, text);
+
+  if (parts.length === 0) {
+    return <span aria-hidden="true">&nbsp;</span>;
+  }
+
+  if (parts.length === 1 && !theme.segments) {
+    return <span style={topicTextStyle(theme)}>{text}</span>;
+  }
+
+  return (
+    <>
+      {parts.map(({ segment, text: segmentText }, index) => (
+        <span key={`${segment.value}-${index}`} style={segmentTextStyle(segment)}>
+          {segmentText}
+        </span>
+      ))}
+    </>
+  );
 }
 
 function usePrefersReducedMotion(): boolean {
@@ -143,7 +220,7 @@ function TopicContent({
 }: TopicContentProps) {
   const content = (
     <span className={`inline-flex items-baseline ${TOPIC_TEXT_CLASS}`}>
-      <span style={topicTextStyle(theme)}>{text}</span>
+      <TopicText theme={theme} text={text} />
       {showCaret && <TopicCaret color={theme.caretColor} />}
     </span>
   );
