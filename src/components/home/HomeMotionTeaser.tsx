@@ -64,12 +64,12 @@ const DELETE_MS = 45;
 const PAUSE_MS = 1400;
 export const EMPTY_HOLD_MS = 500;
 
-const PREFIX_CLASS = 'text-sm sm:text-base font-medium text-white/40';
-const SEPARATOR_CLASS = 'text-white/25';
+const PREFIX_CLASS = 'shrink-0 text-sm sm:text-base font-medium text-white/40';
+const SEPARATOR_CLASS = 'shrink-0 text-white/25';
 const HERO_CLASS =
-  'w-full max-w-full overflow-hidden px-1 text-center min-h-[3.25rem] sm:min-h-[4.5rem]';
+  'flex w-full justify-center overflow-hidden px-1 min-h-[3.25rem] sm:min-h-[4.5rem]';
 const LINE_CLASS =
-  'flex flex-wrap items-baseline justify-center gap-x-1.5 sm:gap-x-2 max-w-full';
+  'inline-flex w-full max-w-[min(100%,22rem)] sm:max-w-[min(100%,26rem)] items-baseline justify-start gap-x-1.5 sm:gap-x-2';
 const TOPIC_TEXT_CLASS =
   'text-[clamp(1.75rem,8vw,3rem)] font-black tracking-tight leading-none break-words';
 
@@ -143,7 +143,7 @@ function TopicContent({
       <button
         type="button"
         onClick={onStart}
-        className="inline-flex max-w-full items-baseline cursor-pointer text-left hover:underline decoration-white/20 underline-offset-4"
+        className="inline-flex min-w-0 max-w-full items-baseline cursor-pointer text-left hover:underline decoration-white/20 underline-offset-4"
         aria-label={ariaLabel}
       >
         {content}
@@ -151,7 +151,7 @@ function TopicContent({
     );
   }
 
-  return <span className="inline-flex max-w-full items-baseline">{content}</span>;
+  return <span className="inline-flex min-w-0 max-w-full items-baseline">{content}</span>;
 }
 
 export function HomeMotionTeaser() {
