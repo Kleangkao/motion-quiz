@@ -101,8 +101,19 @@
 
   /* Slightly compact play-flow UI on short mobile landscape viewports (browser chrome). */
   @media (orientation: landscape) and (max-height: 520px) {
-    .play-flow-viewport .play-flow-prompt-band {
-      top: 8%;
+    .play-flow-viewport .play-flow-game-stage {
+      gap: 0.75rem;
+      top: calc(env(safe-area-inset-top, 0px) + 2.75rem);
+      bottom: calc(env(safe-area-inset-bottom, 0px) + 3.75rem);
+    }
+
+    .play-flow-viewport .play-flow-choices-row {
+      gap: 0.5rem;
+      max-width: 100%;
+    }
+
+    .play-flow-viewport .play-flow-game-card {
+      max-width: 38vw;
     }
 
     .play-flow-viewport .play-flow-card-slot {
