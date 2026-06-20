@@ -18,10 +18,26 @@ export interface TeaserTopicTheme {
 }
 
 export interface TeaserTextSegment {
-  /** Literal segment text, including any leading space. */
+  /** Literal segment text shown in the typewriter (spaces use spacerAfter, not value). */
   value: string;
   gradient?: string;
   textColor?: string;
+  /** Renders a fixed-width gap after this segment once the following space is typed. */
+  spacerAfter?: boolean;
+}
+
+export type TeaserDisplayedPart =
+  | { kind: 'text'; segment: TeaserTextSegment; text: string }
+  | { kind: 'spacer' };
+
+/** Reconstruct the typewriter title from segmented topic config. */
+export function buildSegmentedTopicTitle(segments: readonly TeaserTextSegment[]): string {
+  let title = '';
+  for (let index = 0; index < segments.length; index += 1) {
+    if (index > 0 && segments[index - 1]?.spacerAfter) title += ' ';
+    title += segments[index]?.value ?? '';
+  }
+  return title;
 }
 
 /** Featured topic labels, routes, and logo-inspired accents — matches Play order. */
@@ -58,7 +74,11 @@ export const TEASER_TOPICS: readonly TeaserTopicTheme[] = [
     gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)',
     caretColor: '#ffffff',
     segments: [
-      { value: 'Play ', gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)' },
+      {
+        value: 'Play',
+        gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)',
+        spacerAfter: true,
+      },
       { value: 'Solana', textColor: '#ffffff' },
     ],
   },
@@ -91,14 +111,17 @@ const SEPARATOR_CLASS = 'leading-none text-white/25';
 const LABEL_CLASS = 'inline-flex shrink-0 items-baseline gap-x-1.5 sm:gap-x-2';
 const HERO_CLASS =
   'flex w-full justify-center overflow-hidden px-1 min-h-[3.25rem] sm:min-h-[4.5rem]';
-export const TEASER_BLOCK_CLASS = 'relative inline-block w-max max-w-full';
+export const TEASER_TOPIC_TEXT_CLASS =
+  'text-[clamp(1.55rem,7vw,2.75rem)] font-black tracking-tight leading-none whitespace-nowrap';
+export const PLAY_SOLANA_SPACER_CLASS = 'inline-block w-[0.22em] shrink-0';
+export const TEASER_BLOCK_CLASS =
+  'relative inline-block w-max max-w-[min(100%,22rem)] sm:max-w-[min(100%,26rem)]';
 export const TEASER_LINE_CLASS =
-  'inline-flex w-full items-baseline justify-start gap-x-1.5 sm:gap-x-2';
+  'inline-flex w-full items-baseline justify-start gap-x-1.5 sm:gap-x-2 whitespace-nowrap';
 const LINE_CLASS = TEASER_LINE_CLASS;
-const TOPIC_TEXT_CLASS =
-  'text-[clamp(1.75rem,8vw,3rem)] font-black tracking-tight leading-none break-words';
+const TOPIC_TEXT_CLASS = TEASER_TOPIC_TEXT_CLASS;
 const TOPIC_SLOT_CLASS =
-  'inline-flex min-w-0 min-h-[clamp(1.75rem,8vw,3rem)] items-baseline leading-none';
+  'inline-flex min-h-[clamp(1.55rem,7vw,2.75rem)] items-baseline leading-none shrink-0';
 
 export function isTopicShortcutActive(displayed: string, phase: TeaserPhase): boolean {
   return displayed.length > 0 && phase !== 'emptyHold';
@@ -131,15 +154,15 @@ export function segmentTextStyle(segment: TeaserTextSegment): CSSProperties {
   return {};
 }
 
-export function sliceDisplayedSegments(
+export function sliceDisplayedParts(
   theme: TeaserTopicTheme,
   displayed: string,
-): ReadonlyArray<{ segment: TeaserTextSegment; text: string }> {
+): readonly TeaserDisplayedPart[] {
   if (!theme.segments) {
-    return displayed ? [{ segment: { value: displayed }, text: displayed }] : [];
+    return displayed ? [{ kind: 'text', segment: { value: displayed }, text: displayed }] : [];
   }
 
-  const parts: { segment: TeaserTextSegment; text: string }[] = [];
+  const parts: TeaserDisplayedPart[] = [];
   let consumed = 0;
 
   for (const segment of theme.segments) {
@@ -147,33 +170,63 @@ export function sliceDisplayedSegments(
 
     const take = Math.min(segment.value.length, displayed.length - consumed);
     const text = segment.value.slice(0, take);
-    if (text.length === 0) continue;
-
-    parts.push({ segment, text });
+    if (text.length > 0) {
+      parts.push({ kind: 'text', segment, text });
+    }
     consumed += take;
+
+    if (
+      segment.spacerAfter &&
+      consumed < displayed.length &&
+      displayed.charAt(consumed) === ' '
+    ) {
+      parts.push({ kind: 'spacer' });
+      consumed += 1;
+    }
   }
 
   return parts;
 }
 
+/** @deprecated Use sliceDisplayedParts for spacer-aware rendering. */
+export function sliceDisplayedSegments(
+  theme: TeaserTopicTheme,
+  displayed: string,
+): ReadonlyArray<{ segment: TeaserTextSegment; text: string }> {
+  return sliceDisplayedParts(theme, displayed).flatMap((part) =>
+    part.kind === 'text' ? [{ segment: part.segment, text: part.text }] : [],
+  );
+}
+
 function TopicText({ theme, text }: { theme: TeaserTopicTheme; text: string }) {
-  const parts = sliceDisplayedSegments(theme, text);
+  const parts = sliceDisplayedParts(theme, text);
 
   if (parts.length === 0) {
     return <span aria-hidden="true">&nbsp;</span>;
   }
 
-  if (parts.length === 1 && !theme.segments) {
+  if (parts.length === 1 && parts[0].kind === 'text' && !theme.segments) {
     return <span style={topicTextStyle(theme)}>{text}</span>;
   }
 
   return (
     <>
-      {parts.map(({ segment, text: segmentText }, index) => (
-        <span key={`${segment.value}-${index}`} style={segmentTextStyle(segment)}>
-          {segmentText}
-        </span>
-      ))}
+      {parts.map((part, index) => {
+        if (part.kind === 'spacer') {
+          return (
+            <span
+              key={`spacer-${index}`}
+              aria-hidden="true"
+              className={PLAY_SOLANA_SPACER_CLASS}
+            />
+          );
+        }
+        return (
+          <span key={`${part.segment.value}-${index}`} style={segmentTextStyle(part.segment)}>
+            {part.text}
+          </span>
+        );
+      })}
     </>
   );
 }

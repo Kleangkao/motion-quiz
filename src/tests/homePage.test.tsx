@@ -4,13 +4,17 @@ import { MemoryRouter } from 'react-router-dom';
 import { HomePage, SHOW_HOME_CONTINUE, SHOW_HOME_MOTION_TEASER, SHOW_HOME_QUICK_PLAY } from '@/routes/HomePage';
 import { SoloPlayPage } from '@/routes/SoloPlayPage';
 import {
+  buildSegmentedTopicTitle,
   EMPTY_HOLD_MS,
   isTopicShortcutActive,
+  PLAY_SOLANA_SPACER_CLASS,
   segmentTextStyle,
+  sliceDisplayedParts,
   sliceDisplayedSegments,
   TEASER_BLOCK_CLASS,
   TEASER_LINE_CLASS,
   TEASER_SIZER_TOPIC,
+  TEASER_TOPIC_TEXT_CLASS,
   TEASER_TOPICS,
   topicTextStyle,
 } from '@/components/home/HomeMotionTeaser';
@@ -211,46 +215,90 @@ describe('HomePage hackathon polish', () => {
     }
   });
 
-  it('renders Play Solana with gradient Play and white Solana segments', () => {
+  it('renders Play Solana with gradient Play, explicit spacer, and white Solana', () => {
     const playSolana = TEASER_TOPICS.find((topic) => topic.title === 'Play Solana')!;
 
     expect(playSolana.segments).toEqual([
-      { value: 'Play ', gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)' },
+      {
+        value: 'Play',
+        gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)',
+        spacerAfter: true,
+      },
       { value: 'Solana', textColor: '#ffffff' },
     ]);
+    expect(buildSegmentedTopicTitle(playSolana.segments!)).toBe('Play Solana');
     expect(playSolana.caretColor).toBe('#ffffff');
+    expect(PLAY_SOLANA_SPACER_CLASS).toContain('inline-block');
 
-    const partialPlay = sliceDisplayedSegments(playSolana, 'Pla');
+    const partialPlay = sliceDisplayedParts(playSolana, 'Pla');
     expect(partialPlay).toEqual([
       {
-        segment: { value: 'Play ', gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)' },
+        kind: 'text',
+        segment: {
+          value: 'Play',
+          gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)',
+          spacerAfter: true,
+        },
         text: 'Pla',
       },
     ]);
     expect(segmentTextStyle(partialPlay[0].segment).backgroundImage).toBe(playSolana.gradient);
 
-    const withSpace = sliceDisplayedSegments(playSolana, 'Play ');
+    const withSpace = sliceDisplayedParts(playSolana, 'Play ');
     expect(withSpace).toEqual([
       {
-        segment: { value: 'Play ', gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)' },
-        text: 'Play ',
+        kind: 'text',
+        segment: {
+          value: 'Play',
+          gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)',
+          spacerAfter: true,
+        },
+        text: 'Play',
+      },
+      { kind: 'spacer' },
+    ]);
+    expect(sliceDisplayedSegments(playSolana, 'Play ')).toEqual([
+      {
+        segment: {
+          value: 'Play',
+          gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)',
+          spacerAfter: true,
+        },
+        text: 'Play',
       },
     ]);
 
-    const fullTitle = sliceDisplayedSegments(playSolana, 'Play Solana');
-    expect(fullTitle.map((part) => part.text).join('')).toBe('Play Solana');
-    expect(fullTitle.map((part) => part.text).join('')).not.toBe('PlaySolana');
-    expect(fullTitle.at(-1)).toEqual({
-      segment: { value: 'Solana', textColor: '#ffffff' },
-      text: 'Solana',
-    });
+    const fullTitle = sliceDisplayedParts(playSolana, 'Play Solana');
+    expect(fullTitle).toEqual([
+      {
+        kind: 'text',
+        segment: {
+          value: 'Play',
+          gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)',
+          spacerAfter: true,
+        },
+        text: 'Play',
+      },
+      { kind: 'spacer' },
+      {
+        kind: 'text',
+        segment: { value: 'Solana', textColor: '#ffffff' },
+        text: 'Solana',
+      },
+    ]);
+    expect(fullTitle.some((part) => part.kind === 'spacer')).toBe(true);
+    expect(segmentTextStyle(fullTitle.at(-1)!.segment).backgroundImage).toBeUndefined();
     expect(segmentTextStyle(fullTitle.at(-1)!.segment)).toEqual({ color: '#ffffff' });
   });
 
-  it('keeps the teaser row start-aligned inside a ghost sizer block', () => {
+  it('keeps the teaser row start-aligned inside a ghost sizer block without wrapping', () => {
     expect(TEASER_LINE_CLASS).toContain('justify-start');
+    expect(TEASER_LINE_CLASS).toContain('whitespace-nowrap');
     expect(TEASER_LINE_CLASS).not.toContain('justify-center');
     expect(TEASER_BLOCK_CLASS).toContain('relative');
+    expect(TEASER_BLOCK_CLASS).toContain('max-w-[min(100%,22rem)]');
+    expect(TEASER_TOPIC_TEXT_CLASS).toContain('whitespace-nowrap');
+    expect(TEASER_TOPIC_TEXT_CLASS).toContain('clamp(1.55rem,7vw,2.75rem)');
     expect(TEASER_SIZER_TOPIC).toBe('Ride Markets');
   });
 
