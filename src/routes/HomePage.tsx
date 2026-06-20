@@ -11,12 +11,16 @@ import {
 import type { LessonPack } from '@/storage/types';
 import { WalletHeaderButton } from '@/components/wallet/WalletHeaderButton';
 import { TopicPackIcon } from '@/components/play/TopicPackIcon';
+import { HomeMotionTeaser } from '@/components/home/HomeMotionTeaser';
 
 /** Hackathon polish: set true to restore Home quick-play topic cards. */
 export const SHOW_HOME_QUICK_PLAY = false;
 
 /** Hackathon polish: set true to restore the Continue last-topic button. */
 export const SHOW_HOME_CONTINUE = false;
+
+/** Hackathon polish: set false to hide the typewriter motion teaser. */
+export const SHOW_HOME_MOTION_TEASER = true;
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -109,6 +113,8 @@ export function HomePage() {
           </button>
         ))}
       </nav>
+
+      {SHOW_HOME_MOTION_TEASER && <HomeMotionTeaser />}
 
       <p className="text-xs text-white/30 text-center leading-relaxed">
         Camera processing stays on your device. Video is not uploaded. Wallet signing is off-chain only. No gas, no transfers.

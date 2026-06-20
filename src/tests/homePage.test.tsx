@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { HomePage, SHOW_HOME_CONTINUE, SHOW_HOME_QUICK_PLAY } from '@/routes/HomePage';
+import { HomePage, SHOW_HOME_CONTINUE, SHOW_HOME_MOTION_TEASER, SHOW_HOME_QUICK_PLAY } from '@/routes/HomePage';
 import { SoloPlayPage } from '@/routes/SoloPlayPage';
 import { STARTER_LESSONS } from '@/data/starterLessons';
 import { FEATURED_PLAY_PACK_IDS } from '@/storage/seedLessons';
@@ -65,6 +65,7 @@ describe('HomePage hackathon polish', () => {
   it('keeps Quick Play and Continue flags disabled for hackathon polish', () => {
     expect(SHOW_HOME_QUICK_PLAY).toBe(false);
     expect(SHOW_HOME_CONTINUE).toBe(false);
+    expect(SHOW_HOME_MOTION_TEASER).toBe(true);
   });
 
   it('does not render Quick Play topic cards when disabled', async () => {
@@ -106,6 +107,41 @@ describe('HomePage hackathon polish', () => {
     const startQuiz = await screen.findByRole('button', { name: /Start Quiz/i });
     expect(startQuiz).toBeInTheDocument();
     expect(startQuiz.textContent).toMatch(/Pick a topic and play/i);
+  });
+
+  it('renders the motion teaser below primary actions when enabled', async () => {
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>,
+    );
+
+    const teaser = await screen.findByTestId('home-motion-teaser');
+    expect(teaser).toHaveTextContent('Motion Quiz feels');
+
+    const settings = screen.getByRole('button', { name: /Settings/i });
+    const privacy = screen.getByText(/Camera processing stays on your device/i);
+
+    expect(
+      settings.compareDocumentPosition(teaser) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      teaser.compareDocumentPosition(privacy) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('keeps Start Quiz, Scores, and Settings visible with teaser enabled', async () => {
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>,
+    );
+
+    await screen.findByTestId('home-motion-teaser');
+
+    expect(screen.getByRole('button', { name: /Start Quiz/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Scores/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Settings/i })).toBeInTheDocument();
   });
 });
 
