@@ -57,17 +57,18 @@ export function HomePage() {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-indigo-950 to-purple-950 flex flex-col p-5 pb-8 max-w-lg mx-auto">
-      <header className="pt-2 sm:pt-4 flex items-start justify-between gap-3 shrink-0">
-        <div className="min-w-0">
-          <h1 className="text-3xl font-black text-white tracking-tight">Motion Quiz</h1>
-        </div>
-        <div className="relative flex-shrink-0 pt-1">
-          <WalletHeaderButton />
-        </div>
-      </header>
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-indigo-950 to-purple-950">
+      <div className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 pb-8 pt-4 sm:px-6 sm:pt-5">
+        <header className="flex items-start justify-between gap-3 shrink-0">
+          <div className="min-w-0">
+            <h1 className="text-3xl font-black text-white tracking-tight">Motion Quiz</h1>
+          </div>
+          <div className="relative flex-shrink-0 pt-1">
+            <WalletHeaderButton />
+          </div>
+        </header>
 
-      <div className="flex-1 flex flex-col justify-center gap-5 py-6 sm:py-8 min-h-0">
+        <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-5 py-8 sm:py-10 min-h-0">
         {SHOW_HOME_CONTINUE && lastLesson && (
           <button
             onClick={() => startPack(lastLesson)}
@@ -119,11 +120,12 @@ export function HomePage() {
         {SHOW_HOME_MOTION_TEASER && <HomeMotionTeaser />}
 
         <HomeMiniPreview />
-      </div>
+        </div>
 
-      <p className="text-xs text-white/30 text-center leading-relaxed shrink-0 mt-2">
-        Camera processing stays on your device. Video is not uploaded. Wallet signing is off-chain only. No gas, no transfers.
-      </p>
+        <p className="mx-auto mt-2 w-full max-w-xl text-center text-xs leading-relaxed text-white/30 shrink-0">
+          Camera processing stays on your device. Video is not uploaded. Wallet signing is off-chain only. No gas, no transfers.
+        </p>
+      </div>
     </div>
   );
 }

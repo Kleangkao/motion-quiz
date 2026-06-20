@@ -25,7 +25,7 @@ const PREFIX_CLASS = 'text-xs text-white/35 font-normal';
 const SEPARATOR_CLASS = 'text-white/25';
 const TOPIC_CLASS =
   'text-base font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-violet-300 to-fuchsia-300';
-const TOPIC_SLOT_CLASS = `inline-flex min-w-[12ch] justify-center ${TOPIC_CLASS}`;
+const TOPIC_SLOT_CLASS = `inline-flex ${TOPIC_CLASS}`;
 
 export function isTopicShortcutActive(displayed: string, phase: TeaserPhase): boolean {
   return displayed.length > 0 && phase !== 'emptyHold';
@@ -138,10 +138,10 @@ export function HomeMotionTeaser() {
     const staticTopic = TEASER_TOPICS[0];
     return (
       <p
-        className="flex flex-wrap items-baseline justify-center gap-x-1 text-center"
+        className="flex min-h-[1.75rem] flex-wrap items-baseline justify-center gap-x-1 text-center"
         data-testid="home-motion-teaser"
       >
-        <span className={PREFIX_CLASS}>Motion Quiz</span>
+        <span className={PREFIX_CLASS}>Quiz</span>
         <span className={SEPARATOR_CLASS}>·</span>
         <span className={TOPIC_SLOT_CLASS}>
           <button
@@ -165,13 +165,13 @@ export function HomeMotionTeaser() {
 
   return (
     <p
-      className="flex flex-wrap items-baseline justify-center gap-x-1 text-center"
+      className="flex min-h-[1.75rem] flex-wrap items-baseline justify-center gap-x-1 text-center"
       data-testid="home-motion-teaser"
     >
-      <span className={PREFIX_CLASS}>Motion Quiz</span>
+      <span className={PREFIX_CLASS}>Quiz</span>
       <span className={SEPARATOR_CLASS}>·</span>
       <span className={TOPIC_SLOT_CLASS}>
-        {renderTopicSlot(displayed, displayed.length > 0 || phase === 'emptyHold', shortcutActive)}
+        {renderTopicSlot(displayed, displayed.length > 0, shortcutActive)}
       </span>
     </p>
   );

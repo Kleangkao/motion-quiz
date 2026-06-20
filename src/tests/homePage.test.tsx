@@ -118,9 +118,10 @@ describe('HomePage hackathon polish', () => {
     );
 
     const teaser = await screen.findByTestId('home-motion-teaser');
-    expect(teaser).toHaveTextContent('Motion Quiz');
+    expect(teaser).toHaveTextContent('Quiz');
     expect(teaser.textContent).toContain('·');
     expect(teaser).not.toHaveTextContent('feels');
+    expect(teaser).not.toHaveTextContent('Motion Quiz');
 
     const settings = screen.getByRole('button', { name: /Settings/i });
     const preview = screen.getByTestId('home-mini-preview');
@@ -173,6 +174,18 @@ describe('HomePage hackathon polish', () => {
     ]);
     expect(TEASER_TOPICS.map((topic) => topic.title)).not.toContain('fun');
     expect(TEASER_TOPICS.map((topic) => topic.title)).not.toContain('on-chain');
+  });
+
+  it('renders the teaser with the shorter Quiz label', async () => {
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>,
+    );
+
+    const teaser = await screen.findByTestId('home-motion-teaser');
+    expect(teaser.textContent).toContain('Quiz');
+    expect(teaser.textContent).not.toContain('Motion Quiz feels');
   });
 
   it('keeps Start Quiz, Scores, and Settings visible with teaser enabled', async () => {
