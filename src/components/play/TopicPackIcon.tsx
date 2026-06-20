@@ -13,18 +13,38 @@ const TOPIC_PACK_LOGOS: Record<string, { src: string; alt: string }> = {
   monkedao: { src: '/packs/monkedao-logo.jpg', alt: 'MonkeDAO' },
 };
 
-const SIZE_CLASS = {
-  sm: 'h-8 w-8',
-  md: 'h-10 w-10',
-  lg: 'h-12 w-12',
+export const TOPIC_PACK_ICON_WRAPPER_CLASS = {
+  sm: 'inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg',
+  md: 'inline-flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg',
+  lg: 'inline-flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg',
 } as const;
+
+export const TOPIC_PACK_ICON_IMAGE_CLASS = 'max-h-full max-w-full object-contain object-center';
 
 interface Props {
   packId: string;
   icon?: LessonImageRef;
   title?: string;
-  size?: keyof typeof SIZE_CLASS;
+  size?: keyof typeof TOPIC_PACK_ICON_WRAPPER_CLASS;
   className?: string;
+}
+
+function TopicLogoImage({
+  src,
+  alt,
+  size,
+  className = '',
+}: {
+  src: string;
+  alt: string;
+  size: keyof typeof TOPIC_PACK_ICON_WRAPPER_CLASS;
+  className?: string;
+}) {
+  return (
+    <span className={`${TOPIC_PACK_ICON_WRAPPER_CLASS[size]} ${className}`.trim()}>
+      <img src={src} alt={alt} className={TOPIC_PACK_ICON_IMAGE_CLASS} draggable={false} />
+    </span>
+  );
 }
 
 function CustomTopicIcon({
@@ -35,7 +55,7 @@ function CustomTopicIcon({
 }: {
   icon: LessonImageRef;
   alt: string;
-  size: keyof typeof SIZE_CLASS;
+  size: keyof typeof TOPIC_PACK_ICON_WRAPPER_CLASS;
   className: string;
 }) {
   const [src, setSrc] = useState<string | null>(null);
@@ -53,31 +73,24 @@ function CustomTopicIcon({
   if (!src) {
     return (
       <span
-        className={`flex ${SIZE_CLASS[size]} shrink-0 items-center justify-center rounded-lg bg-white/10 animate-pulse ${className}`}
+        className={`${TOPIC_PACK_ICON_WRAPPER_CLASS[size]} bg-white/10 animate-pulse ${className}`.trim()}
         aria-hidden
       />
     );
   }
 
-  return (
-    <img
-      src={src}
-      alt={alt}
-      className={`${SIZE_CLASS[size]} shrink-0 rounded-lg object-contain ${className}`}
-      draggable={false}
-    />
-  );
+  return <TopicLogoImage src={src} alt={alt} size={size} className={className} />;
 }
 
 export function TopicPackIcon({ packId, icon, title, size = 'md', className = '' }: Props) {
   const builtIn = TOPIC_PACK_LOGOS[packId];
   if (builtIn) {
     return (
-      <img
+      <TopicLogoImage
         src={builtIn.src}
         alt={builtIn.alt}
-        className={`${SIZE_CLASS[size]} shrink-0 rounded-lg object-contain ${className}`}
-        draggable={false}
+        size={size}
+        className={className}
       />
     );
   }
@@ -95,7 +108,7 @@ export function TopicPackIcon({ packId, icon, title, size = 'md', className = ''
 
   return (
     <span
-      className={`flex ${SIZE_CLASS[size]} shrink-0 items-center justify-center text-2xl leading-none ${className}`}
+      className={`${TOPIC_PACK_ICON_WRAPPER_CLASS[size]} text-2xl leading-none ${className}`.trim()}
       aria-hidden
     >
       🎯

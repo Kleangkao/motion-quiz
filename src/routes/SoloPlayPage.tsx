@@ -25,10 +25,10 @@ function TopicCard({
   onExport?: () => void;
 }) {
   return (
-    <div className="glass-card p-5 flex items-start gap-3 transform-gpu origin-center transition-transform duration-200 hover:-translate-y-1 focus-within:-translate-y-1 active:scale-[0.995] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:focus-within:translate-y-0">
+    <div className="glass-card p-5 flex items-center gap-3 transform-gpu origin-center transition-transform duration-200 hover:-translate-y-1 focus-within:-translate-y-1 active:scale-[0.995] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:focus-within:translate-y-0">
       <button
         onClick={onPlay}
-        className="flex flex-1 min-w-0 items-start gap-3 text-left outline-none"
+        className="flex flex-1 min-w-0 items-center gap-3 text-left outline-none"
       >
         <TopicPackIcon packId={lesson.id} icon={lesson.icon} title={lesson.title} size="md" />
         <div className="min-w-0">
