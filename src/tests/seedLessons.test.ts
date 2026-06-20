@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BUILTIN_LESSON_IDS, STARTER_LESSONS } from '@/data/starterLessons';
 import { islanddaoChallengeLesson } from '@/data/islanddaoChallengeLesson';
+import { rideMarketLesson } from '@/data/rideMarketLesson';
 import { solanaBasicsLesson } from '@/data/solanaBasicsLesson';
+import { isBuiltinStarterLessonId } from '@/storage/starterLessonSync';
 
 const { put, getLesson } = vi.hoisted(() => ({
   put: vi.fn(),
@@ -186,5 +188,68 @@ describe('ensureStarterLessons', () => {
         questions: islanddaoChallengeLesson.questions,
       }),
     );
+  });
+
+  it('syncs built-in Play metadata when IndexedDB still has an old description', async () => {
+    const oldRideMarket = {
+      ...rideMarketLesson,
+      description: 'TRUE/FALSE quiz about Ride Markets conviction trading.',
+    };
+    getLesson.mockImplementation(async (id: string) => {
+      if (id === 'ride-market') return oldRideMarket;
+      return STARTER_LESSONS.find((lesson) => lesson.id === id);
+    });
+
+    const result = await ensureStarterLessons();
+
+    expect(result.updatedIds).toContain('ride-market');
+    expect(put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'ride-market',
+        description: 'Trade calls, YES/NO choices, and conviction markets.',
+        questions: oldRideMarket.questions,
+        createdAt: oldRideMarket.createdAt,
+      }),
+    );
+  });
+
+  it('syncs IslandDAO description without changing saved questions when prompts already match', async () => {
+    const oldIslandDao = {
+      ...islanddaoChallengeLesson,
+      description: 'TRUE/FALSE quiz about IslandDAO and the Solana builder community.',
+    };
+    getLesson.mockImplementation(async (id: string) => {
+      if (id === 'islanddao-challenge') return oldIslandDao;
+      return STARTER_LESSONS.find((lesson) => lesson.id === id);
+    });
+
+    const result = await ensureStarterLessons();
+
+    expect(result.updatedIds).toContain('islanddao-challenge');
+    expect(put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'islanddao-challenge',
+        description: 'IslandDAO, builders, events, and community quests.',
+        questions: oldIslandDao.questions,
+      }),
+    );
+  });
+
+  it('does not overwrite custom topics that are not built-in starter lesson IDs', async () => {
+    const customTopic = {
+      ...rideMarketLesson,
+      id: 'my-custom-topic',
+      title: 'Custom Topic',
+      description: 'User-authored description should stay.',
+    };
+    getLesson.mockImplementation(async (id: string) => {
+      if (id === 'my-custom-topic') return customTopic;
+      return STARTER_LESSONS.find((lesson) => lesson.id === id);
+    });
+
+    await ensureStarterLessons();
+
+    expect(isBuiltinStarterLessonId('my-custom-topic')).toBe(false);
+    expect(put).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'my-custom-topic' }));
   });
 });

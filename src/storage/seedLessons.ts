@@ -11,6 +11,10 @@ import {
   solanaBasicsBuiltinMatches,
 } from '@/data/solanaBasicsLesson';
 import { getLesson } from './lessonStorage';
+import {
+  mergeStarterLessonMetadata,
+  starterLessonMetadataMatches,
+} from './starterLessonSync';
 import { nowIso } from '@/utils/ids';
 
 export interface StarterLessonMigrationResult {
@@ -57,10 +61,33 @@ async function syncSolanaBasicsBuiltin(): Promise<boolean> {
 }
 
 /**
+ * Refresh Play-safe metadata (title, description, icon) for all built-in starter packs.
+ * Preserves saved questions and createdAt — does not touch non-built-in lesson IDs.
+ */
+async function syncStarterLessonMetadata(): Promise<string[]> {
+  const updatedIds: string[] = [];
+
+  for (const canonical of STARTER_LESSONS) {
+    const existing = await getLesson(canonical.id);
+    if (!existing) continue;
+    if (starterLessonMetadataMatches(existing, canonical)) continue;
+
+    await db.lessons.put({
+      ...mergeStarterLessonMetadata(existing, canonical),
+      updatedAt: nowIso(),
+    });
+    updatedIds.push(canonical.id);
+  }
+
+  return updatedIds;
+}
+
+/**
  * Ensure every built-in quiz pack exists in IndexedDB.
  * Inserts missing packs by stable ID only — never overwrites other existing rows
- * (including user-edited packs that share a built-in ID).
- * IslandDAO Challenge and Solana Basics sync when built-in question content changes.
+ * (including user-created packs that share a built-in ID).
+ * Solana Basics and IslandDAO Challenge also sync when built-in question content changes.
+ * All built-in starter packs sync title/description/icon when canonical metadata changes.
  */
 export async function ensureStarterLessons(): Promise<StarterLessonMigrationResult> {
   const insertedIds: string[] = [];
@@ -79,6 +106,12 @@ export async function ensureStarterLessons(): Promise<StarterLessonMigrationResu
   }
   if (await syncSolanaBasicsBuiltin()) {
     updatedIds.push(SOLANA_BASICS_ID);
+  }
+
+  for (const id of await syncStarterLessonMetadata()) {
+    if (!updatedIds.includes(id)) {
+      updatedIds.push(id);
+    }
   }
 
   return { insertedIds, updatedIds };
