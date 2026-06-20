@@ -3,7 +3,12 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HomePage, SHOW_HOME_CONTINUE, SHOW_HOME_MOTION_TEASER, SHOW_HOME_QUICK_PLAY } from '@/routes/HomePage';
 import { SoloPlayPage } from '@/routes/SoloPlayPage';
-import { EMPTY_HOLD_MS, isTopicShortcutActive, TEASER_TOPICS } from '@/components/home/HomeMotionTeaser';
+import {
+  EMPTY_HOLD_MS,
+  isTopicShortcutActive,
+  TEASER_TOPICS,
+  topicTextStyle,
+} from '@/components/home/HomeMotionTeaser';
 import { STARTER_LESSONS } from '@/data/starterLessons';
 import { FEATURED_PLAY_PACK_IDS } from '@/storage/seedLessons';
 import type { LessonPack } from '@/storage/types';
@@ -110,7 +115,7 @@ describe('HomePage hackathon polish', () => {
     expect(startQuiz.textContent).toMatch(/Pick a topic and play/i);
   });
 
-  it('renders the motion teaser below primary actions when enabled', async () => {
+  it('renders the hero teaser above Start Quiz when enabled', async () => {
     render(
       <MemoryRouter>
         <HomePage />
@@ -118,20 +123,34 @@ describe('HomePage hackathon polish', () => {
     );
 
     const teaser = await screen.findByTestId('home-motion-teaser');
+    const startQuiz = screen.getByRole('button', { name: /Start Quiz/i });
+
     expect(teaser).toHaveTextContent('Quiz');
     expect(teaser.textContent).toContain('·');
     expect(teaser).not.toHaveTextContent('feels');
     expect(teaser).not.toHaveTextContent('Motion Quiz');
+    expect(
+      teaser.compareDocumentPosition(startQuiz) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
 
+  it('keeps mini preview below the primary action buttons', async () => {
+    render(
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>,
+    );
+
+    const startQuiz = await screen.findByRole('button', { name: /Start Quiz/i });
     const settings = screen.getByRole('button', { name: /Settings/i });
     const preview = screen.getByTestId('home-mini-preview');
     const privacy = screen.getByText(/Camera processing stays on your device/i);
 
     expect(
-      settings.compareDocumentPosition(teaser) & Node.DOCUMENT_POSITION_FOLLOWING,
+      settings.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
-      teaser.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING,
+      startQuiz.compareDocumentPosition(preview) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(
       preview.compareDocumentPosition(privacy) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -174,6 +193,14 @@ describe('HomePage hackathon polish', () => {
     ]);
     expect(TEASER_TOPICS.map((topic) => topic.title)).not.toContain('fun');
     expect(TEASER_TOPICS.map((topic) => topic.title)).not.toContain('on-chain');
+  });
+
+  it('assigns logo-inspired gradients to each teaser topic', () => {
+    for (const topic of TEASER_TOPICS) {
+      expect(topic.gradient).toMatch(/^linear-gradient\(/);
+      expect(topic.caretColor).toMatch(/^#/);
+      expect(topicTextStyle(topic).backgroundImage).toBe(topic.gradient);
+    }
   });
 
   it('renders the teaser with the shorter Quiz label', async () => {

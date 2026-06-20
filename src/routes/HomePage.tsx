@@ -68,7 +68,9 @@ export function HomePage() {
           </div>
         </header>
 
-        <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-5 py-8 sm:py-10 min-h-0">
+        <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center gap-4 py-6 sm:gap-5 sm:py-8 min-h-0">
+        {SHOW_HOME_MOTION_TEASER && <HomeMotionTeaser />}
+
         {SHOW_HOME_CONTINUE && lastLesson && (
           <button
             onClick={() => startPack(lastLesson)}
@@ -116,8 +118,6 @@ export function HomePage() {
             </button>
           ))}
         </nav>
-
-        {SHOW_HOME_MOTION_TEASER && <HomeMotionTeaser />}
 
         <HomeMiniPreview />
         </div>
