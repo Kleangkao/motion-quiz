@@ -1,4 +1,4 @@
-import type { LessonImageRef, LessonPack } from './types';
+import type { LessonImageRef, LessonPack, QuizChoice, QuizQuestion } from './types';
 import { STARTER_LESSONS } from '@/data/starterLessons';
 
 /** Stable built-in starter lesson IDs seeded from canonical pack data. */
@@ -29,12 +29,41 @@ export function starterLessonMetadataMatches(existing: LessonPack, canonical: Le
   );
 }
 
-/** Refresh title/description/icon on a saved built-in pack without touching questions. */
-export function mergeStarterLessonMetadata(existing: LessonPack, canonical: LessonPack): LessonPack {
+function choiceFingerprint(choice: QuizChoice): string {
+  const image = choice.image;
+  return [
+    choice.id,
+    choice.label ?? '',
+    choice.altText ?? '',
+    image?.kind ?? '',
+    image?.value ?? '',
+  ].join('|');
+}
+
+function questionFingerprint(question: QuizQuestion): string {
+  return [
+    question.id,
+    question.prompt,
+    question.correctSide,
+    choiceFingerprint(question.left),
+    choiceFingerprint(question.right),
+  ].join('||');
+}
+
+/** Whether saved built-in pack content matches canonical starter data. */
+export function starterLessonContentMatches(existing: LessonPack, canonical: LessonPack): boolean {
+  if (!starterLessonMetadataMatches(existing, canonical)) return false;
+  if (existing.questions.length !== canonical.questions.length) return false;
+  return existing.questions.every(
+    (question, index) =>
+      questionFingerprint(question) === questionFingerprint(canonical.questions[index]),
+  );
+}
+
+/** Refresh canonical built-in content while preserving safe local fields. */
+export function mergeStarterLessonContent(existing: LessonPack, canonical: LessonPack): LessonPack {
   return {
-    ...existing,
-    title: canonical.title,
-    description: canonical.description,
-    icon: canonical.icon,
+    ...canonical,
+    createdAt: existing.createdAt,
   };
 }

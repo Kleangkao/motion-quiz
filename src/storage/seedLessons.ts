@@ -1,19 +1,9 @@
 import { db } from './db';
-import type { LessonPack } from './types';
 import { STARTER_LESSONS } from '@/data/starterLessons';
-import {
-  ISLANDDAO_CHALLENGE_ID,
-  islanddaoChallengeLesson,
-  islandDaoBuiltinContentMatches,
-} from '@/data/islanddaoChallengeLesson';
-import {
-  solanaBasicsLesson,
-  solanaBasicsBuiltinMatches,
-} from '@/data/solanaBasicsLesson';
 import { getLesson } from './lessonStorage';
 import {
-  mergeStarterLessonMetadata,
-  starterLessonMetadataMatches,
+  mergeStarterLessonContent,
+  starterLessonContentMatches,
 } from './starterLessonSync';
 import { nowIso } from '@/utils/ids';
 
@@ -24,56 +14,20 @@ export interface StarterLessonMigrationResult {
   updatedIds: string[];
 }
 
-function islandDaoPromptsMatch(a: Pick<LessonPack, 'questions'>, b: Pick<LessonPack, 'questions'>): boolean {
-  return islandDaoBuiltinContentMatches(a, b);
-}
-
 /**
- * Refresh the built-in IslandDAO pack in IndexedDB when question or choice image content changed.
- * Only touches the stable built-in ID; preserves createdAt and user-created topics.
+ * Refresh saved built-in starter packs when canonical content differs.
+ * Preserves createdAt and only touches known built-in starter lesson IDs.
  */
-async function syncIslandDaoChallengeBuiltin(): Promise<boolean> {
-  const existing = await getLesson(ISLANDDAO_CHALLENGE_ID);
-  if (!existing) return false;
-  if (islandDaoPromptsMatch(existing, islanddaoChallengeLesson)) return false;
-
-  await db.lessons.put({
-    ...islanddaoChallengeLesson,
-    createdAt: existing.createdAt,
-    updatedAt: nowIso(),
-  });
-  return true;
-}
-
-const SOLANA_BASICS_ID = 'solana-basics';
-
-async function syncSolanaBasicsBuiltin(): Promise<boolean> {
-  const existing = await getLesson(SOLANA_BASICS_ID);
-  if (!existing) return false;
-  if (solanaBasicsBuiltinMatches(existing, solanaBasicsLesson)) return false;
-
-  await db.lessons.put({
-    ...solanaBasicsLesson,
-    createdAt: existing.createdAt,
-    updatedAt: nowIso(),
-  });
-  return true;
-}
-
-/**
- * Refresh Play-safe metadata (title, description, icon) for all built-in starter packs.
- * Preserves saved questions and createdAt — does not touch non-built-in lesson IDs.
- */
-async function syncStarterLessonMetadata(): Promise<string[]> {
+async function syncStarterLessonContent(): Promise<string[]> {
   const updatedIds: string[] = [];
 
   for (const canonical of STARTER_LESSONS) {
     const existing = await getLesson(canonical.id);
     if (!existing) continue;
-    if (starterLessonMetadataMatches(existing, canonical)) continue;
+    if (starterLessonContentMatches(existing, canonical)) continue;
 
     await db.lessons.put({
-      ...mergeStarterLessonMetadata(existing, canonical),
+      ...mergeStarterLessonContent(existing, canonical),
       updatedAt: nowIso(),
     });
     updatedIds.push(canonical.id);
@@ -84,10 +38,8 @@ async function syncStarterLessonMetadata(): Promise<string[]> {
 
 /**
  * Ensure every built-in quiz pack exists in IndexedDB.
- * Inserts missing packs by stable ID only — never overwrites other existing rows
- * (including user-created packs that share a built-in ID).
- * Solana Basics and IslandDAO Challenge also sync when built-in question content changes.
- * All built-in starter packs sync title/description/icon when canonical metadata changes.
+ * Inserts missing packs by stable ID only — never overwrites non-built-in rows.
+ * Refreshes saved built-in starter packs when canonical title/description/icon/questions differ.
  */
 export async function ensureStarterLessons(): Promise<StarterLessonMigrationResult> {
   const insertedIds: string[] = [];
@@ -100,19 +52,7 @@ export async function ensureStarterLessons(): Promise<StarterLessonMigrationResu
     }
   }
 
-  const updatedIds: string[] = [];
-  if (await syncIslandDaoChallengeBuiltin()) {
-    updatedIds.push(ISLANDDAO_CHALLENGE_ID);
-  }
-  if (await syncSolanaBasicsBuiltin()) {
-    updatedIds.push(SOLANA_BASICS_ID);
-  }
-
-  for (const id of await syncStarterLessonMetadata()) {
-    if (!updatedIds.includes(id)) {
-      updatedIds.push(id);
-    }
-  }
+  const updatedIds = await syncStarterLessonContent();
 
   return { insertedIds, updatedIds };
 }
