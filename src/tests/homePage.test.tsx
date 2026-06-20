@@ -122,7 +122,7 @@ describe('SoloPlayPage featured topics', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'Play' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Choose a quiz topic', level: 1 })).toBeInTheDocument();
     });
 
     const titles = (FEATURED_PLAY_PACK_IDS as readonly string[]).map(
@@ -142,5 +142,35 @@ describe('SoloPlayPage featured topics', () => {
     for (const title of titles) {
       expect(screen.getByRole('heading', { name: title, level: 2 })).toBeInTheDocument();
     }
+  });
+
+  it('shows featured topics before create/import actions', async () => {
+    render(
+      <MemoryRouter>
+        <SoloPlayPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Featured topics', level: 2 })).toBeInTheDocument();
+    });
+
+    const featuredHeading = screen.getByRole('heading', { name: 'Featured topics', level: 2 });
+    const createHeading = screen.getByRole('heading', { name: 'Create your own', level: 2 });
+
+    expect(
+      featuredHeading.compareDocumentPosition(createHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('keeps Create Topic and Import Pack actions available', async () => {
+    render(
+      <MemoryRouter>
+        <SoloPlayPage />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('button', { name: 'Create Topic' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Import Pack' })).toBeInTheDocument();
   });
 });

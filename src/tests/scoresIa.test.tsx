@@ -282,7 +282,7 @@ describe('Play page navigation', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Play' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Choose a quiz topic', level: 1 })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Results$/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Leaderboard$/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Scores$/i })).toBeNull();
