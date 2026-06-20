@@ -1,6 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { STARTER_LESSONS } from '@/data/starterLessons';
+import { playStateForLesson } from '@/storage/seedLessons';
 
-const TEASER_WORDS = ['fun', 'focused', 'fast', 'social', 'on-chain'] as const;
+/** Featured topic labels and pack IDs — matches Play order. */
+export const TEASER_TOPICS = [
+  { title: 'Solana', packId: 'solana-basics' },
+  { title: 'IslandDAO', packId: 'islanddao-challenge' },
+  { title: 'Ride Markets', packId: 'ride-market' },
+  { title: 'DoubleZero', packId: 'doublezero' },
+  { title: 'Play Solana', packId: 'play-solana' },
+  { title: 'Star Atlas', packId: 'star-atlas' },
+  { title: 'MonkeDAO', packId: 'monkedao' },
+] as const;
 
 const TYPE_MS = 70;
 const DELETE_MS = 45;
@@ -9,7 +21,9 @@ export const EMPTY_HOLD_MS = 500;
 
 type TeaserPhase = 'typing' | 'deleting' | 'emptyHold';
 
-const DYNAMIC_WORD_CLASS =
+const PREFIX_CLASS = 'text-xs text-white/35 font-normal';
+const SEPARATOR_CLASS = 'text-white/25';
+const TOPIC_CLASS =
   'text-base font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-violet-300 to-fuchsia-300';
 
 function usePrefersReducedMotion(): boolean {
@@ -29,21 +43,31 @@ function usePrefersReducedMotion(): boolean {
 }
 
 export function HomeMotionTeaser() {
+  const navigate = useNavigate();
   const reducedMotion = usePrefersReducedMotion();
-  const [wordIndex, setWordIndex] = useState(0);
+  const [topicIndex, setTopicIndex] = useState(0);
   const [displayed, setDisplayed] = useState('');
   const [phase, setPhase] = useState<TeaserPhase>('typing');
+
+  const currentTopic = TEASER_TOPICS[topicIndex];
+  const fullTitle = currentTopic.title;
+
+  const isFullyTyped = phase === 'typing' && displayed === fullTitle;
+
+  const lessonByPackId = useMemo(
+    () => new Map(STARTER_LESSONS.map((lesson) => [lesson.id, lesson])),
+    [],
+  );
 
   useEffect(() => {
     if (reducedMotion) return;
 
-    const word = TEASER_WORDS[wordIndex];
     let timer: ReturnType<typeof setTimeout>;
 
     if (phase === 'typing') {
-      if (displayed.length < word.length) {
+      if (displayed.length < fullTitle.length) {
         timer = setTimeout(
-          () => setDisplayed(word.slice(0, displayed.length + 1)),
+          () => setDisplayed(fullTitle.slice(0, displayed.length + 1)),
           TYPE_MS,
         );
       } else {
@@ -57,37 +81,64 @@ export function HomeMotionTeaser() {
       }
     } else {
       timer = setTimeout(() => {
-        setWordIndex((index) => (index + 1) % TEASER_WORDS.length);
+        setTopicIndex((index) => (index + 1) % TEASER_TOPICS.length);
         setPhase('typing');
       }, EMPTY_HOLD_MS);
     }
 
     return () => clearTimeout(timer);
-  }, [displayed, phase, wordIndex, reducedMotion]);
+  }, [displayed, phase, fullTitle, reducedMotion]);
+
+  const startTopic = () => {
+    const lesson = lessonByPackId.get(currentTopic.packId);
+    if (!lesson) return;
+    navigate(`/play/${currentTopic.packId}/calibrate`, {
+      state: playStateForLesson(lesson),
+    });
+  };
 
   if (reducedMotion) {
     return (
-      <p className="text-sm text-white/40 text-center pt-2" data-testid="home-motion-teaser">
-        Motion Quiz feels{' '}
-        <span className={DYNAMIC_WORD_CLASS}>{TEASER_WORDS[0]}</span>
+      <p className="text-center pt-2" data-testid="home-motion-teaser">
+        <span className={PREFIX_CLASS}>Motion Quiz</span>
+        <span className={SEPARATOR_CLASS}> · </span>
+        <span className={TOPIC_CLASS}>{TEASER_TOPICS[0].title}</span>
       </p>
     );
   }
 
+  const topicContent = (
+    <>
+      {displayed}
+      <span
+        className="ml-px inline-block h-[0.85em] w-px translate-y-px bg-fuchsia-300/70 animate-pulse"
+        aria-hidden
+      />
+    </>
+  );
+
   return (
     <p
-      className="text-sm text-white/40 text-center pt-2"
+      className="text-center pt-2"
       data-testid="home-motion-teaser"
       aria-live="polite"
     >
-      Motion Quiz feels{' '}
-      <span className={`inline-block min-w-[5.5rem] text-left ${DYNAMIC_WORD_CLASS}`}>
+      <span className={PREFIX_CLASS}>Motion Quiz</span>
+      <span className={SEPARATOR_CLASS}> · </span>
+      <span className={`inline-block min-w-[8.5rem] text-left ${TOPIC_CLASS}`}>
         <span className="inline whitespace-nowrap">
-          {displayed}
-          <span
-            className="ml-px inline-block h-[0.85em] w-px translate-y-px bg-fuchsia-300/70 animate-pulse"
-            aria-hidden
-          />
+          {isFullyTyped ? (
+            <button
+              type="button"
+              onClick={startTopic}
+              className="cursor-pointer text-left hover:underline decoration-white/20 underline-offset-2"
+              aria-label={`Start ${fullTitle} quiz`}
+            >
+              {topicContent}
+            </button>
+          ) : (
+            topicContent
+          )}
         </span>
       </span>
     </p>

@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { HomePage, SHOW_HOME_CONTINUE, SHOW_HOME_MOTION_TEASER, SHOW_HOME_QUICK_PLAY } from '@/routes/HomePage';
 import { SoloPlayPage } from '@/routes/SoloPlayPage';
-import { EMPTY_HOLD_MS } from '@/components/home/HomeMotionTeaser';
+import { EMPTY_HOLD_MS, TEASER_TOPICS } from '@/components/home/HomeMotionTeaser';
 import { STARTER_LESSONS } from '@/data/starterLessons';
 import { FEATURED_PLAY_PACK_IDS } from '@/storage/seedLessons';
 import type { LessonPack } from '@/storage/types';
@@ -118,7 +118,9 @@ describe('HomePage hackathon polish', () => {
     );
 
     const teaser = await screen.findByTestId('home-motion-teaser');
-    expect(teaser).toHaveTextContent('Motion Quiz feels');
+    expect(teaser).toHaveTextContent('Motion Quiz');
+    expect(teaser.textContent).toContain('·');
+    expect(teaser).not.toHaveTextContent('feels');
 
     const settings = screen.getByRole('button', { name: /Settings/i });
     const privacy = screen.getByText(/Camera processing stays on your device/i);
@@ -133,6 +135,20 @@ describe('HomePage hackathon polish', () => {
 
   it('uses a short hold after deleting the typewriter word', () => {
     expect(EMPTY_HOLD_MS).toBe(500);
+  });
+
+  it('rotates featured topic names instead of mood words', () => {
+    expect(TEASER_TOPICS.map((topic) => topic.title)).toEqual([
+      'Solana',
+      'IslandDAO',
+      'Ride Markets',
+      'DoubleZero',
+      'Play Solana',
+      'Star Atlas',
+      'MonkeDAO',
+    ]);
+    expect(TEASER_TOPICS.map((topic) => topic.title)).not.toContain('fun');
+    expect(TEASER_TOPICS.map((topic) => topic.title)).not.toContain('on-chain');
   });
 
   it('keeps Start Quiz, Scores, and Settings visible with teaser enabled', async () => {
