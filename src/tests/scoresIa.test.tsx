@@ -50,7 +50,14 @@ vi.mock('@/leaderboard/leaderboardTopics', () => ({
 
 vi.mock('@/storage/seedLessons', () => ({
   ensureStarterLessons: vi.fn().mockResolvedValue({ insertedIds: [], updatedIds: [] }),
-  FEATURED_PLAY_PACK_IDS: ['solana-basics', 'islanddao-challenge'],
+  FEATURED_PLAY_PACK_IDS: [
+    'solana-basics',
+    'islanddao-challenge',
+    'doublezero',
+    'play-solana',
+    'star-atlas',
+    'monkedao',
+  ],
   isRetiredBuiltinPack: () => false,
   isVisibleInPlay: () => true,
   isFeaturedPlayPack: () => false,

@@ -24,6 +24,23 @@ export function twoChoice(
   };
 }
 
+export function trueFalse(
+  id: string,
+  prompt: string,
+  answer: boolean,
+  tags?: string[],
+): QuizQuestion {
+  return {
+    id,
+    prompt,
+    left: { id: `${id}_true`, label: 'TRUE' },
+    right: { id: `${id}_false`, label: 'FALSE' },
+    correctSide: answer ? 'left' : 'right',
+    difficulty: 'easy',
+    tags,
+  };
+}
+
 export function alternateSides(count: number): ('left' | 'right')[] {
   return Array.from({ length: count }, (_, i) => (i % 2 === 0 ? 'left' : 'right'));
 }

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Star Atlas">
+  <rect width="128" height="128" rx="16" fill="#0f172a"/>
+  <rect x="8" y="8" width="112" height="112" rx="12" fill="#172554" stroke="#818cf8" stroke-width="2"/>
+  <text x="64" y="58" text-anchor="middle" fill="#a5b4fc" font-family="system-ui,sans-serif" font-size="14" font-weight="700">Star</text>
+  <text x="64" y="78" text-anchor="middle" fill="#e0e7ff" font-family="system-ui,sans-serif" font-size="14" font-weight="700">Atlas</text>
+</svg>

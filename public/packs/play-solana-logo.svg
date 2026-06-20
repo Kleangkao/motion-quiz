@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Play Solana">
+  <rect width="128" height="128" rx="16" fill="#0f172a"/>
+  <rect x="8" y="8" width="112" height="112" rx="12" fill="#581c87" stroke="#c084fc" stroke-width="2"/>
+  <text x="64" y="54" text-anchor="middle" fill="#e9d5ff" font-family="system-ui,sans-serif" font-size="13" font-weight="700">Play</text>
+  <text x="64" y="74" text-anchor="middle" fill="#c084fc" font-family="system-ui,sans-serif" font-size="13" font-weight="700">Solana</text>
+</svg>

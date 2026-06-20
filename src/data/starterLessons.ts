@@ -83,11 +83,19 @@ export const placesAtSchoolLesson: LessonPack = {
 
 import { solanaBasicsLesson } from './solanaBasicsLesson';
 import { islanddaoChallengeLesson } from './islanddaoChallengeLesson';
+import { doublezeroLesson } from './doublezeroLesson';
+import { playSolanaLesson } from './playSolanaLesson';
+import { starAtlasLesson } from './starAtlasLesson';
+import { monkedaoLesson } from './monkedaoLesson';
 
 /** Built-in packs seeded on first launch (legacy classroom / retired packs excluded). */
 export const STARTER_LESSONS: LessonPack[] = [
   solanaBasicsLesson,
   islanddaoChallengeLesson,
+  doublezeroLesson,
+  playSolanaLesson,
+  starAtlasLesson,
+  monkedaoLesson,
 ];
 
 /** Stable IDs for built-in packs — used for idempotent IndexedDB migration */

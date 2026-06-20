@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="DoubleZero">
+  <rect width="128" height="128" rx="16" fill="#0f172a"/>
+  <rect x="8" y="8" width="112" height="112" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+  <text x="64" y="58" text-anchor="middle" fill="#38bdf8" font-family="system-ui,sans-serif" font-size="22" font-weight="700">DZ</text>
+  <text x="64" y="82" text-anchor="middle" fill="#e2e8f0" font-family="system-ui,sans-serif" font-size="11" font-weight="600">DoubleZero</text>
+</svg>
