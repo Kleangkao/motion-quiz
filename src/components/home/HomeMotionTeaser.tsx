@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { STARTER_LESSONS } from '@/data/starterLessons';
 import { playStateForLesson } from '@/storage/seedLessons';
@@ -58,8 +58,7 @@ export const TEASER_TOPICS: readonly TeaserTopicTheme[] = [
     gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)',
     caretColor: '#ffffff',
     segments: [
-      { value: 'Play', gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)' },
-      { value: ' ', textColor: '#ffffff' },
+      { value: 'Play ', gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)' },
       { value: 'Solana', textColor: '#ffffff' },
     ],
   },
@@ -84,13 +83,17 @@ const DELETE_MS = 45;
 const PAUSE_MS = 1400;
 export const EMPTY_HOLD_MS = 500;
 
+/** Widest rendered topic label — sets stable teaser width via ghost sizer line. */
+export const TEASER_SIZER_TOPIC = 'Ride Markets';
+
 const PREFIX_CLASS = 'text-base sm:text-lg font-medium leading-none text-white/40';
 const SEPARATOR_CLASS = 'leading-none text-white/25';
 const LABEL_CLASS = 'inline-flex shrink-0 items-baseline gap-x-1.5 sm:gap-x-2';
 const HERO_CLASS =
   'flex w-full justify-center overflow-hidden px-1 min-h-[3.25rem] sm:min-h-[4.5rem]';
+export const TEASER_BLOCK_CLASS = 'relative inline-block w-max max-w-full';
 export const TEASER_LINE_CLASS =
-  'inline-flex w-full max-w-[min(100%,19rem)] sm:max-w-[min(100%,23rem)] items-baseline justify-start gap-x-1.5 sm:gap-x-2';
+  'inline-flex w-full items-baseline justify-start gap-x-1.5 sm:gap-x-2';
 const LINE_CLASS = TEASER_LINE_CLASS;
 const TOPIC_TEXT_CLASS =
   'text-[clamp(1.75rem,8vw,3rem)] font-black tracking-tight leading-none break-words';
@@ -210,6 +213,33 @@ interface TopicContentProps {
   onStart: () => void;
 }
 
+function TeaserLabel() {
+  return (
+    <span className={LABEL_CLASS}>
+      <span className={PREFIX_CLASS}>Quiz</span>
+      <span className={SEPARATOR_CLASS}>·</span>
+    </span>
+  );
+}
+
+function TeaserSizerLine() {
+  return (
+    <p className={`${LINE_CLASS} invisible pointer-events-none select-none`} aria-hidden="true">
+      <TeaserLabel />
+      <span className={`inline-flex items-baseline ${TOPIC_TEXT_CLASS}`}>{TEASER_SIZER_TOPIC}</span>
+    </p>
+  );
+}
+
+function TeaserBlock({ children }: { children: ReactNode }) {
+  return (
+    <div className={TEASER_BLOCK_CLASS}>
+      <TeaserSizerLine />
+      <p className={`${LINE_CLASS} absolute left-0 top-0`}>{children}</p>
+    </div>
+  );
+}
+
 function TopicContent({
   text,
   showCaret,
@@ -301,11 +331,8 @@ export function HomeMotionTeaser() {
     const staticTopic = TEASER_TOPICS[0];
     return (
       <section className={HERO_CLASS} data-testid="home-motion-teaser">
-        <p className={LINE_CLASS}>
-          <span className={LABEL_CLASS}>
-            <span className={PREFIX_CLASS}>Quiz</span>
-            <span className={SEPARATOR_CLASS}>·</span>
-          </span>
+        <TeaserBlock>
+          <TeaserLabel />
           <TopicContent
             text={staticTopic.title}
             showCaret={false}
@@ -314,18 +341,15 @@ export function HomeMotionTeaser() {
             ariaLabel={`Start ${staticTopic.title} quiz`}
             onStart={() => startTopic(staticTopic)}
           />
-        </p>
+        </TeaserBlock>
       </section>
     );
   }
 
   return (
     <section className={HERO_CLASS} data-testid="home-motion-teaser">
-      <p className={LINE_CLASS}>
-        <span className={LABEL_CLASS}>
-          <span className={PREFIX_CLASS}>Quiz</span>
-          <span className={SEPARATOR_CLASS}>·</span>
-        </span>
+      <TeaserBlock>
+        <TeaserLabel />
         <TopicContent
           text={displayed}
           showCaret
@@ -334,7 +358,7 @@ export function HomeMotionTeaser() {
           ariaLabel={`Start ${fullTitle} quiz`}
           onStart={() => startTopic(currentTopic)}
         />
-      </p>
+      </TeaserBlock>
     </section>
   );
 }

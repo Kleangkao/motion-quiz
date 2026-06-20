@@ -8,7 +8,9 @@ import {
   isTopicShortcutActive,
   segmentTextStyle,
   sliceDisplayedSegments,
+  TEASER_BLOCK_CLASS,
   TEASER_LINE_CLASS,
+  TEASER_SIZER_TOPIC,
   TEASER_TOPICS,
   topicTextStyle,
 } from '@/components/home/HomeMotionTeaser';
@@ -213,8 +215,7 @@ describe('HomePage hackathon polish', () => {
     const playSolana = TEASER_TOPICS.find((topic) => topic.title === 'Play Solana')!;
 
     expect(playSolana.segments).toEqual([
-      { value: 'Play', gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)' },
-      { value: ' ', textColor: '#ffffff' },
+      { value: 'Play ', gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)' },
       { value: 'Solana', textColor: '#ffffff' },
     ]);
     expect(playSolana.caretColor).toBe('#ffffff');
@@ -222,7 +223,7 @@ describe('HomePage hackathon polish', () => {
     const partialPlay = sliceDisplayedSegments(playSolana, 'Pla');
     expect(partialPlay).toEqual([
       {
-        segment: { value: 'Play', gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)' },
+        segment: { value: 'Play ', gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)' },
         text: 'Pla',
       },
     ]);
@@ -231,13 +232,14 @@ describe('HomePage hackathon polish', () => {
     const withSpace = sliceDisplayedSegments(playSolana, 'Play ');
     expect(withSpace).toEqual([
       {
-        segment: { value: 'Play', gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)' },
-        text: 'Play',
+        segment: { value: 'Play ', gradient: 'linear-gradient(90deg, #a855f7, #22d3ee, #84cc16)' },
+        text: 'Play ',
       },
-      { segment: { value: ' ', textColor: '#ffffff' }, text: ' ' },
     ]);
 
     const fullTitle = sliceDisplayedSegments(playSolana, 'Play Solana');
+    expect(fullTitle.map((part) => part.text).join('')).toBe('Play Solana');
+    expect(fullTitle.map((part) => part.text).join('')).not.toBe('PlaySolana');
     expect(fullTitle.at(-1)).toEqual({
       segment: { value: 'Solana', textColor: '#ffffff' },
       text: 'Solana',
@@ -245,11 +247,11 @@ describe('HomePage hackathon polish', () => {
     expect(segmentTextStyle(fullTitle.at(-1)!.segment)).toEqual({ color: '#ffffff' });
   });
 
-  it('keeps the teaser row start-aligned with a narrower stable width', () => {
+  it('keeps the teaser row start-aligned inside a ghost sizer block', () => {
     expect(TEASER_LINE_CLASS).toContain('justify-start');
-    expect(TEASER_LINE_CLASS).toContain('max-w-[min(100%,19rem)]');
-    expect(TEASER_LINE_CLASS).toContain('sm:max-w-[min(100%,23rem)]');
     expect(TEASER_LINE_CLASS).not.toContain('justify-center');
+    expect(TEASER_BLOCK_CLASS).toContain('relative');
+    expect(TEASER_SIZER_TOPIC).toBe('Ride Markets');
   });
 
   it('assigns solid teaser colors for IslandDAO, DoubleZero, Star Atlas, and MonkeDAO', () => {
