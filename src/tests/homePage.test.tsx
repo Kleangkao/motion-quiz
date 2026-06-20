@@ -114,7 +114,7 @@ describe('SoloPlayPage featured topics', () => {
     listLessons.mockResolvedValue(STARTER_LESSONS);
   });
 
-  it('renders all active playable topics in order without Ride Market', async () => {
+  it('renders all active playable topics in order including Ride Markets', async () => {
     render(
       <MemoryRouter>
         <SoloPlayPage />
@@ -132,6 +132,7 @@ describe('SoloPlayPage featured topics', () => {
     expect(titles).toEqual([
       'Solana',
       'IslandDAO Challenge',
+      'Ride Markets',
       'DoubleZero',
       'Play Solana',
       'Star Atlas',
@@ -141,7 +142,5 @@ describe('SoloPlayPage featured topics', () => {
     for (const title of titles) {
       expect(screen.getByRole('heading', { name: title, level: 2 })).toBeInTheDocument();
     }
-
-    expect(screen.queryByRole('heading', { name: 'Ride Market', level: 2 })).toBeNull();
   });
 });

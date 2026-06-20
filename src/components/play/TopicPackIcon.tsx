@@ -6,9 +6,10 @@ import { getImageUrl } from '@/storage/imageStorage';
 const TOPIC_PACK_LOGOS: Record<string, { src: string; alt: string }> = {
   'solana-basics': { src: '/packs/solana-logo.png', alt: 'Solana' },
   'islanddao-challenge': { src: '/packs/islanddao-logo.png', alt: 'Island DAO' },
-  doublezero: { src: '/packs/doublezero-logo.svg', alt: 'DoubleZero' },
-  'play-solana': { src: '/packs/play-solana-logo.svg', alt: 'Play Solana' },
-  'star-atlas': { src: '/packs/star-atlas-logo.svg', alt: 'Star Atlas' },
+  'ride-market': { src: '/packs/ride-market-logo.jpg', alt: 'Ride Markets' },
+  doublezero: { src: '/packs/doublezero-logo.png', alt: 'DoubleZero' },
+  'play-solana': { src: '/packs/play-solana-logo.png', alt: 'Play Solana' },
+  'star-atlas': { src: '/packs/star-atlas-logo.jpeg', alt: 'Star Atlas' },
   monkedao: { src: '/packs/monkedao-logo.svg', alt: 'MonkeDAO' },
 };
 

@@ -96,6 +96,7 @@ export function isSoloPack(lesson: { packKind?: string; id: string }): boolean {
 export const FEATURED_PLAY_PACK_IDS = [
   'solana-basics',
   'islanddao-challenge',
+  'ride-market',
   'doublezero',
   'play-solana',
   'star-atlas',
