@@ -31,7 +31,7 @@ import type { LeaderboardTopicOption, RecordedScoreRow, TopicLeaderboardRow } fr
 
 /** Single-row horizontal topic filter on Scores leaderboard tab. */
 export const SCORES_TOPIC_FILTER_ROW_CLASS =
-  'flex flex-nowrap gap-2 overflow-x-auto pb-1 -mx-1 px-1';
+  'flex flex-nowrap gap-2 overflow-x-auto -mx-1 px-2 py-2 -my-1';
 export const SCORES_TOPIC_FILTER_CHIP_CLASS = 'btn btn-sm shrink-0';
 
 function LeaderboardRowCard({ row }: { row: TopicLeaderboardRow }) {

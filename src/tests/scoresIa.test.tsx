@@ -219,6 +219,7 @@ describe('ScoresPage leaderboard loading', () => {
     expect(filterRow?.className).toContain(SCORES_TOPIC_FILTER_ROW_CLASS.split(' ')[0]);
     expect(SCORES_TOPIC_FILTER_ROW_CLASS).toContain('flex-nowrap');
     expect(SCORES_TOPIC_FILTER_ROW_CLASS).toContain('overflow-x-auto');
+    expect(SCORES_TOPIC_FILTER_ROW_CLASS).toContain('py-2');
     expect(SCORES_TOPIC_FILTER_CHIP_CLASS).toContain('shrink-0');
     expect(filterRow?.className).not.toContain('flex-wrap');
   });
