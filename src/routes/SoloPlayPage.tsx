@@ -25,10 +25,10 @@ function TopicCard({
   onExport?: () => void;
 }) {
   return (
-    <div className="glass-card p-5 flex items-start gap-3">
+    <div className="glass-card p-5 flex items-center gap-3 transform-gpu origin-center transition-transform duration-200 hover:-translate-y-1 focus-within:-translate-y-1 active:scale-[0.995] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:focus-within:translate-y-0">
       <button
         onClick={onPlay}
-        className="flex flex-1 min-w-0 items-start gap-3 text-left transition active:scale-[0.99]"
+        className="flex flex-1 min-w-0 items-center gap-3 text-left outline-none"
       >
         <TopicPackIcon packId={lesson.id} icon={lesson.icon} title={lesson.title} size="md" />
         <div className="min-w-0">
@@ -126,16 +126,16 @@ export function SoloPlayPage() {
   }
 
   return (
-    <PageLayout title="Play" backTo="/">
-      <p className="text-sm text-white/50 mb-4">
-        Pick a quiz, choose your camera, then point left or right to answer.
+    <PageLayout title="Choose a quiz topic" backTo="/">
+      <p className="text-sm text-white/50 mb-6">
+        Pick a topic and answer with motion.
       </p>
 
-      <div className="space-y-6">
-        <section className="space-y-3">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-white/40">
-            Featured packs
-          </h3>
+      <div className="space-y-8">
+        <section aria-labelledby="featured-topics-heading" className="space-y-4">
+          <h2 id="featured-topics-heading" className="text-base font-semibold text-white">
+            Featured topics
+          </h2>
           <div className="grid gap-4">
             {featuredLessons.map((lesson) => (
               <TopicCard key={lesson.id} lesson={lesson} onPlay={() => startQuiz(lesson)} />
@@ -144,10 +144,10 @@ export function SoloPlayPage() {
         </section>
 
         {userTopics.length > 0 && (
-          <section className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-white/40">
+          <section aria-labelledby="your-topics-heading" className="space-y-4">
+            <h2 id="your-topics-heading" className="text-base font-semibold text-white">
               Your topics
-            </h3>
+            </h2>
             <div className="grid gap-4">
               {userTopics.map((lesson) => (
                 <TopicCard
@@ -162,43 +162,59 @@ export function SoloPlayPage() {
           </section>
         )}
 
-        <section className="rounded-xl border border-white/10 bg-white/5 p-4 space-y-3">
-          <button
-            type="button"
-            onClick={() => navigate('/play/create-topic')}
-            className="btn btn-secondary btn-md w-full"
+        <div className="relative py-2" role="separator" aria-label="or">
+          <div className="border-t border-white/10" />
+          <span
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900 px-3 text-xs lowercase text-white/35"
+            data-testid="play-create-divider-or"
           >
-            Create Topic
-          </button>
+            or
+          </span>
+        </div>
 
-          <div className="border-t border-white/10 pt-3 space-y-2">
-            <div>
-              <h3 className="text-sm font-semibold text-white">Import Topic</h3>
-              <p className="text-xs text-white/45 mt-1">
-                Advanced: load a shared topic JSON file.
-              </p>
-            </div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".json,application/json"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleImport(f);
-                e.target.value = '';
-              }}
-            />
+        <section
+          aria-labelledby="create-your-own-heading"
+          className="rounded-xl border border-white/5 bg-white/[0.03] p-4 space-y-4"
+        >
+          <div>
+            <h2 id="create-your-own-heading" className="text-sm font-semibold text-white/70">
+              Create your own
+            </h2>
+            <p className="text-xs text-white/40 mt-1">
+              Optional: build a custom topic or import a shared pack file.
+            </p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => navigate('/play/create-topic')}
+              className="btn btn-secondary btn-sm w-full justify-center"
+            >
+              Create Topic
+            </button>
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="btn btn-secondary btn-sm w-full"
+              className="btn btn-secondary btn-sm w-full justify-center"
             >
-              Import from JSON
+              Import Pack
             </button>
-            {importError && <p className="text-xs text-red-400">{importError}</p>}
-            {importOk && <p className="text-xs text-green-400">{importOk}</p>}
           </div>
+
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleImport(f);
+              e.target.value = '';
+            }}
+          />
+          {importError && <p className="text-xs text-red-400">{importError}</p>}
+          {importOk && <p className="text-xs text-green-400">{importOk}</p>}
         </section>
       </div>
     </PageLayout>

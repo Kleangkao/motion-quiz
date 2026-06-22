@@ -31,6 +31,7 @@ import { ErrorMessage } from '@/components/common/ErrorMessage';
 import { setSessionPhotos as storeSessionPhotos } from '@/game/sessionPhotoCache';
 import {
   resolvePostFeedbackPhotoAction,
+  scheduledPhotoSlotCount,
   type PhotoResumeMode,
 } from '@/game/sessionPhotoSchedule';
 import { calibrationForFacing } from '@/camera/cameraSetup';
@@ -117,6 +118,7 @@ export function GamePage() {
   const keyboardAllowed = isKeyboardInputAllowed(selectionMode);
   const isPlaying = gameState.status === 'playing';
   const isPhotoCapture = gameState.status === 'photo-capture';
+  const scheduledPhotoTotal = scheduledPhotoSlotCount(gameState.questionQueue.length);
 
   const targetZones = useTargetZones(
     containerRef,
@@ -436,9 +438,9 @@ export function GamePage() {
               ⏸
             </button>
           )}
-          {sessionPhotos.length > 0 && (
+          {scheduledPhotoTotal > 0 && sessionPhotos.length > 0 && (
             <span className="rounded-xl bg-pink-600/80 px-2 py-1 text-xs font-bold text-white" title="Photo moments this round">
-              📸 {sessionPhotos.length}/3
+              📸 {sessionPhotos.length}/{scheduledPhotoTotal}
             </span>
           )}
         </div>

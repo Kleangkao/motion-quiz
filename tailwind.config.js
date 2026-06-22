@@ -11,6 +11,7 @@ export default {
         'pulse-fast': 'pulse 0.5s ease-in-out infinite',
         'bounce-in': 'bounceIn 0.4s ease-out',
         'fade-in': 'fadeIn 0.3s ease-out',
+        'caret-blink': 'caretBlink 1s step-end infinite',
       },
       keyframes: {
         bounceIn: {
@@ -21,6 +22,10 @@ export default {
         fadeIn: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
+        },
+        caretBlink: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
         },
       },
     },

@@ -1,7 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BUILTIN_LESSON_IDS, STARTER_LESSONS } from '@/data/starterLessons';
+import { doublezeroLesson } from '@/data/doublezeroLesson';
 import { islanddaoChallengeLesson } from '@/data/islanddaoChallengeLesson';
+import { monkedaoLesson } from '@/data/monkedaoLesson';
+import { playSolanaLesson } from '@/data/playSolanaLesson';
+import { rideMarketLesson } from '@/data/rideMarketLesson';
 import { solanaBasicsLesson } from '@/data/solanaBasicsLesson';
+import { starAtlasLesson } from '@/data/starAtlasLesson';
+import type { LessonPack } from '@/storage/types';
+import { isBuiltinStarterLessonId } from '@/storage/starterLessonSync';
 
 const { put, getLesson } = vi.hoisted(() => ({
   put: vi.fn(),
@@ -21,6 +28,13 @@ vi.mock('@/storage/lessonStorage', () => ({
 }));
 
 import { ensureStarterLessons } from '@/storage/seedLessons';
+
+function mockAllCanonicalExcept(overrides: Record<string, LessonPack | undefined>) {
+  getLesson.mockImplementation(async (id: string) => {
+    if (id in overrides) return overrides[id];
+    return STARTER_LESSONS.find((lesson) => lesson.id === id);
+  });
+}
 
 describe('ensureStarterLessons', () => {
   beforeEach(() => {
@@ -46,9 +60,7 @@ describe('ensureStarterLessons', () => {
   });
 
   it('does not overwrite solana-basics when canonical content still matches', async () => {
-    getLesson.mockImplementation(async (id: string) =>
-      id === 'solana-basics' ? STARTER_LESSONS.find((l) => l.id === 'solana-basics') : undefined,
-    );
+    mockAllCanonicalExcept({});
 
     const result = await ensureStarterLessons();
 
@@ -62,10 +74,7 @@ describe('ensureStarterLessons', () => {
       ...solanaBasicsLesson,
       title: 'Solana Basics',
     };
-    getLesson.mockImplementation(async (id: string) => {
-      if (id === 'solana-basics') return oldTitle;
-      return STARTER_LESSONS.find((lesson) => lesson.id === id);
-    });
+    mockAllCanonicalExcept({ 'solana-basics': oldTitle });
 
     const result = await ensureStarterLessons();
 
@@ -74,6 +83,7 @@ describe('ensureStarterLessons', () => {
       expect.objectContaining({
         id: 'solana-basics',
         title: 'Solana',
+        questions: solanaBasicsLesson.questions,
         createdAt: oldTitle.createdAt,
       }),
     );
@@ -90,10 +100,7 @@ describe('ensureStarterLessons', () => {
         },
       ],
     };
-    getLesson.mockImplementation(async (id: string) => {
-      if (id === 'solana-basics') return oldSolana;
-      return STARTER_LESSONS.find((lesson) => lesson.id === id);
-    });
+    mockAllCanonicalExcept({ 'solana-basics': oldSolana });
 
     const result = await ensureStarterLessons();
 
@@ -108,9 +115,7 @@ describe('ensureStarterLessons', () => {
   });
 
   it('is idempotent on repeated runs', async () => {
-    getLesson.mockImplementation(async (id: string) =>
-      STARTER_LESSONS.find((lesson) => lesson.id === id),
-    );
+    mockAllCanonicalExcept({});
 
     const first = await ensureStarterLessons();
     const second = await ensureStarterLessons();
@@ -134,10 +139,7 @@ describe('ensureStarterLessons', () => {
         },
       ],
     };
-    getLesson.mockImplementation(async (id: string) => {
-      if (id === 'islanddao-challenge') return oldIslandDao;
-      return STARTER_LESSONS.find((lesson) => lesson.id === id);
-    });
+    mockAllCanonicalExcept({ 'islanddao-challenge': oldIslandDao });
 
     const result = await ensureStarterLessons();
 
@@ -153,9 +155,7 @@ describe('ensureStarterLessons', () => {
   });
 
   it('does not sync IslandDAO when content already matches canonical pack', async () => {
-    getLesson.mockImplementation(async (id: string) =>
-      STARTER_LESSONS.find((lesson) => lesson.id === id),
-    );
+    mockAllCanonicalExcept({});
 
     const result = await ensureStarterLessons();
 
@@ -168,14 +168,17 @@ describe('ensureStarterLessons', () => {
       ...islanddaoChallengeLesson,
       questions: islanddaoChallengeLesson.questions.map((q) => ({
         ...q,
-        left: { ...q.left, image: undefined },
-        right: { ...q.right, image: undefined },
+        left: {
+          ...q.left,
+          image: { kind: 'external' as const, value: '/legacy-left.png' },
+        },
+        right: {
+          ...q.right,
+          image: { kind: 'external' as const, value: '/legacy-right.png' },
+        },
       })),
     };
-    getLesson.mockImplementation(async (id: string) => {
-      if (id === 'islanddao-challenge') return oldIslandDao;
-      return STARTER_LESSONS.find((lesson) => lesson.id === id);
-    });
+    mockAllCanonicalExcept({ 'islanddao-challenge': oldIslandDao });
 
     const result = await ensureStarterLessons();
 
@@ -186,5 +189,154 @@ describe('ensureStarterLessons', () => {
         questions: islanddaoChallengeLesson.questions,
       }),
     );
+  });
+
+  it('syncs built-in Play copy when IndexedDB still has an old description', async () => {
+    const oldRideMarket = {
+      ...rideMarketLesson,
+      description: 'TRUE/FALSE quiz about Ride Markets conviction trading.',
+    };
+    mockAllCanonicalExcept({ 'ride-market': oldRideMarket });
+
+    const result = await ensureStarterLessons();
+
+    expect(result.updatedIds).toContain('ride-market');
+    expect(put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'ride-market',
+        description: 'Trade calls, YES/NO choices, and conviction markets.',
+        questions: rideMarketLesson.questions,
+        createdAt: oldRideMarket.createdAt,
+      }),
+    );
+  });
+
+  it('syncs ride-market when IndexedDB still has nine old questions', async () => {
+    const oldRideMarket = {
+      ...rideMarketLesson,
+      questions: [
+        ...rideMarketLesson.questions,
+        {
+          ...rideMarketLesson.questions[0],
+          id: 'ride_market_q08',
+          prompt: 'Legacy Ride Markets question eight',
+        },
+        {
+          ...rideMarketLesson.questions[1],
+          id: 'ride_market_q09',
+          prompt: 'Legacy Ride Markets question nine',
+        },
+      ],
+    };
+    mockAllCanonicalExcept({ 'ride-market': oldRideMarket });
+
+    const result = await ensureStarterLessons();
+
+    expect(result.updatedIds).toContain('ride-market');
+    expect(put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'ride-market',
+        questions: rideMarketLesson.questions,
+      }),
+    );
+    expect(rideMarketLesson.questions).toHaveLength(7);
+  });
+
+  it('syncs doublezero when IndexedDB still has old built-in questions', async () => {
+    const oldDoubleZero = {
+      ...doublezeroLesson,
+      questions: [
+        {
+          ...doublezeroLesson.questions[0],
+          prompt: 'DoubleZero helps distributed systems communicate',
+        },
+      ],
+    };
+    mockAllCanonicalExcept({ doublezero: oldDoubleZero });
+
+    const result = await ensureStarterLessons();
+
+    expect(result.updatedIds).toContain('doublezero');
+    expect(put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'doublezero',
+        questions: doublezeroLesson.questions,
+      }),
+    );
+    expect(doublezeroLesson.questions).toHaveLength(6);
+  });
+
+  it('syncs play-solana when IndexedDB still has old built-in questions', async () => {
+    const oldPlaySolana = {
+      ...playSolanaLesson,
+      questions: playSolanaLesson.questions.map((question, index) =>
+        index === 0
+          ? { ...question, prompt: 'Play Solana is a browser extension' }
+          : question,
+      ),
+    };
+    mockAllCanonicalExcept({ 'play-solana': oldPlaySolana });
+
+    const result = await ensureStarterLessons();
+
+    expect(result.updatedIds).toContain('play-solana');
+    expect(put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'play-solana',
+        questions: playSolanaLesson.questions,
+      }),
+    );
+    expect(playSolanaLesson.questions).toHaveLength(7);
+  });
+
+  it('syncs monkedao when IndexedDB still has old built-in questions', async () => {
+    const oldMonkeDao = {
+      ...monkedaoLesson,
+      questions: [
+        {
+          ...monkedaoLesson.questions[0],
+          prompt: 'Monkedao is only about trading NFTs',
+        },
+      ],
+    };
+    mockAllCanonicalExcept({ monkedao: oldMonkeDao });
+
+    const result = await ensureStarterLessons();
+
+    expect(result.updatedIds).toContain('monkedao');
+    expect(put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'monkedao',
+        questions: monkedaoLesson.questions,
+      }),
+    );
+    expect(monkedaoLesson.questions).toHaveLength(7);
+  });
+
+  it('does not sync star-atlas when saved content already matches canonical pack', async () => {
+    mockAllCanonicalExcept({});
+
+    const result = await ensureStarterLessons();
+
+    expect(result.updatedIds).not.toContain('star-atlas');
+    expect(starAtlasLesson.questions).toHaveLength(6);
+  });
+
+  it('does not overwrite custom topics that are not built-in starter lesson IDs', async () => {
+    const customTopic = {
+      ...rideMarketLesson,
+      id: 'my-custom-topic',
+      title: 'Custom Topic',
+      description: 'User-authored description should stay.',
+    };
+    getLesson.mockImplementation(async (id: string) => {
+      if (id === 'my-custom-topic') return customTopic;
+      return STARTER_LESSONS.find((lesson) => lesson.id === id);
+    });
+
+    await ensureStarterLessons();
+
+    expect(isBuiltinStarterLessonId('my-custom-topic')).toBe(false);
+    expect(put).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'my-custom-topic' }));
   });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { ScoresPage } from '@/routes/ScoresPage';
+import { ScoresPage, SCORES_TOPIC_FILTER_CHIP_CLASS, SCORES_TOPIC_FILTER_ROW_CLASS } from '@/routes/ScoresPage';
 import { HomePage } from '@/routes/HomePage';
 import { SolanaScorePanel } from '@/components/result/SolanaScorePanel';
 import { SoloPlayPage } from '@/routes/SoloPlayPage';
@@ -50,7 +50,14 @@ vi.mock('@/leaderboard/leaderboardTopics', () => ({
 
 vi.mock('@/storage/seedLessons', () => ({
   ensureStarterLessons: vi.fn().mockResolvedValue({ insertedIds: [], updatedIds: [] }),
-  FEATURED_PLAY_PACK_IDS: ['solana-basics', 'islanddao-challenge'],
+  FEATURED_PLAY_PACK_IDS: [
+    'solana-basics',
+    'islanddao-challenge',
+    'doublezero',
+    'play-solana',
+    'star-atlas',
+    'monkedao',
+  ],
   isRetiredBuiltinPack: () => false,
   isVisibleInPlay: () => true,
   isFeaturedPlayPack: () => false,
@@ -202,6 +209,20 @@ describe('ScoresPage leaderboard loading', () => {
     });
   });
 
+  it('renders topic filters in a single horizontal scroll row', async () => {
+    renderScoresAt('/scores');
+
+    const islandDao = await screen.findByRole('button', { name: 'IslandDAO Challenge' });
+    const filterRow = islandDao.closest("[class*='overflow-x-auto']");
+
+    expect(filterRow).not.toBeNull();
+    expect(filterRow?.className).toContain(SCORES_TOPIC_FILTER_ROW_CLASS.split(' ')[0]);
+    expect(SCORES_TOPIC_FILTER_ROW_CLASS).toContain('flex-nowrap');
+    expect(SCORES_TOPIC_FILTER_ROW_CLASS).toContain('overflow-x-auto');
+    expect(SCORES_TOPIC_FILTER_CHIP_CLASS).toContain('shrink-0');
+    expect(filterRow?.className).not.toContain('flex-wrap');
+  });
+
   it('falls back to IslandDAO Challenge when pack query is invalid', async () => {
     renderScoresAt('/scores?pack=invalid-pack');
 
@@ -275,7 +296,7 @@ describe('Play page navigation', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Play' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Choose a quiz topic', level: 1 })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Results$/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Leaderboard$/i })).toBeNull();
     expect(screen.queryByRole('button', { name: /^Scores$/i })).toBeNull();

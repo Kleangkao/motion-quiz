@@ -1,16 +1,10 @@
 import { db } from './db';
-import type { LessonPack } from './types';
 import { STARTER_LESSONS } from '@/data/starterLessons';
-import {
-  ISLANDDAO_CHALLENGE_ID,
-  islanddaoChallengeLesson,
-  islandDaoBuiltinContentMatches,
-} from '@/data/islanddaoChallengeLesson';
-import {
-  solanaBasicsLesson,
-  solanaBasicsBuiltinMatches,
-} from '@/data/solanaBasicsLesson';
 import { getLesson } from './lessonStorage';
+import {
+  mergeStarterLessonContent,
+  starterLessonContentMatches,
+} from './starterLessonSync';
 import { nowIso } from '@/utils/ids';
 
 export interface StarterLessonMigrationResult {
@@ -20,47 +14,32 @@ export interface StarterLessonMigrationResult {
   updatedIds: string[];
 }
 
-function islandDaoPromptsMatch(a: Pick<LessonPack, 'questions'>, b: Pick<LessonPack, 'questions'>): boolean {
-  return islandDaoBuiltinContentMatches(a, b);
-}
-
 /**
- * Refresh the built-in IslandDAO pack in IndexedDB when question or choice image content changed.
- * Only touches the stable built-in ID; preserves createdAt and user-created topics.
+ * Refresh saved built-in starter packs when canonical content differs.
+ * Preserves createdAt and only touches known built-in starter lesson IDs.
  */
-async function syncIslandDaoChallengeBuiltin(): Promise<boolean> {
-  const existing = await getLesson(ISLANDDAO_CHALLENGE_ID);
-  if (!existing) return false;
-  if (islandDaoPromptsMatch(existing, islanddaoChallengeLesson)) return false;
+async function syncStarterLessonContent(): Promise<string[]> {
+  const updatedIds: string[] = [];
 
-  await db.lessons.put({
-    ...islanddaoChallengeLesson,
-    createdAt: existing.createdAt,
-    updatedAt: nowIso(),
-  });
-  return true;
-}
+  for (const canonical of STARTER_LESSONS) {
+    const existing = await getLesson(canonical.id);
+    if (!existing) continue;
+    if (starterLessonContentMatches(existing, canonical)) continue;
 
-const SOLANA_BASICS_ID = 'solana-basics';
+    await db.lessons.put({
+      ...mergeStarterLessonContent(existing, canonical),
+      updatedAt: nowIso(),
+    });
+    updatedIds.push(canonical.id);
+  }
 
-async function syncSolanaBasicsBuiltin(): Promise<boolean> {
-  const existing = await getLesson(SOLANA_BASICS_ID);
-  if (!existing) return false;
-  if (solanaBasicsBuiltinMatches(existing, solanaBasicsLesson)) return false;
-
-  await db.lessons.put({
-    ...solanaBasicsLesson,
-    createdAt: existing.createdAt,
-    updatedAt: nowIso(),
-  });
-  return true;
+  return updatedIds;
 }
 
 /**
  * Ensure every built-in quiz pack exists in IndexedDB.
- * Inserts missing packs by stable ID only — never overwrites other existing rows
- * (including user-edited packs that share a built-in ID).
- * IslandDAO Challenge and Solana Basics sync when built-in question content changes.
+ * Inserts missing packs by stable ID only — never overwrites non-built-in rows.
+ * Refreshes saved built-in starter packs when canonical title/description/icon/questions differ.
  */
 export async function ensureStarterLessons(): Promise<StarterLessonMigrationResult> {
   const insertedIds: string[] = [];
@@ -73,13 +52,7 @@ export async function ensureStarterLessons(): Promise<StarterLessonMigrationResu
     }
   }
 
-  const updatedIds: string[] = [];
-  if (await syncIslandDaoChallengeBuiltin()) {
-    updatedIds.push(ISLANDDAO_CHALLENGE_ID);
-  }
-  if (await syncSolanaBasicsBuiltin()) {
-    updatedIds.push(SOLANA_BASICS_ID);
-  }
+  const updatedIds = await syncStarterLessonContent();
 
   return { insertedIds, updatedIds };
 }
@@ -96,6 +69,11 @@ export function isSoloPack(lesson: { packKind?: string; id: string }): boolean {
 export const FEATURED_PLAY_PACK_IDS = [
   'solana-basics',
   'islanddao-challenge',
+  'ride-market',
+  'doublezero',
+  'play-solana',
+  'star-atlas',
+  'monkedao',
 ] as const;
 
 export type FeaturedPlayPackId = (typeof FEATURED_PLAY_PACK_IDS)[number];
